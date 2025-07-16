@@ -44,6 +44,7 @@ const userSchema = new mongoose.Schema({
 
   // Social
   friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
   // New: Friend request system

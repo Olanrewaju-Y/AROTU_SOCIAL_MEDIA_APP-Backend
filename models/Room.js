@@ -11,7 +11,7 @@ const roomSchema = new mongoose.Schema({
   isPrivate: { type: Boolean, default: false },
   members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   admins: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // New field for admins
-  parentRoom: { type: mongoose.Schema.Types.ObjectId, ref: 'Room', default: null },
+  parentRoom: { type: mongoose.Schema.Types.ObjectId, ref: 'Room' },
   messages: [messageSchema],
   type: { type: String, enum: ['main', 'sub'], default: 'main' }
 }, { timestamps: true });
