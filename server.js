@@ -24,8 +24,9 @@ const io = socketIo(server, {
   cors: {
     origin: '*'
   }
-
 });
+
+app.set('io', io); // This makes io accessible via req.app.get('io')
 
 // Middleware
 app.use(cors());
