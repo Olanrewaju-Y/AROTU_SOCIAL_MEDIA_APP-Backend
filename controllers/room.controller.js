@@ -125,3 +125,33 @@ exports.removeAdminFromRoom = async (req, res) => {
         res.status(500).json({ message: "Error removing admin", error });
     }
 };
+
+// Post room messages
+exports.postRoomMessages = async (req, res) => {
+    const { text, userId } = req.body;
+
+    const msg = {
+        user: userId,
+        text
+    };
+try {
+    const room = await Room.findByIdAndUpdate(
+      req.params.id,
+      { $push: { messages: msg } },
+      { new: true }
+    ).populate('messages.user', 'username');
+
+    // Emit via Socket.IO (optional: inject socket into route)
+    req.app.get('io').to(req.params.id).emit('receiveMessage', msg);
+
+    res.status(201).json(msg);
+  } catch (err) {
+    res.status(500).json({ error: 'Message could not be saved.' });
+  }
+};
+
+// Get room messages
+exports.getRoomMessages = async (req, res) => {
+  const room = await Room.findById(req.params.id).populate('messages.user', 'username');
+  res.json(room.messages);
+};

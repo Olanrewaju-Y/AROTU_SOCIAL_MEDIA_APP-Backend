@@ -12,4 +12,10 @@ router.delete("/:id", auth, roomController.deleteRoom);
 router.post("/admins/add", auth, roomController.addAdminToRoom);
 router.post("/admins/remove", auth, roomController.removeAdminFromRoom);
 
+
+// Room messages
+router.post("/:id/messages", auth, roomController.postRoomMessages);
+router.get("/:id/messages", auth, roomController.getRoomMessages);
+
+
 module.exports = router;
