@@ -49,7 +49,6 @@ mongoose.connect(process.env.MONGO_URI)
     console.error('MongoDB connection error:', err);
   });
 
-
 // Routes
 app.get('/', (req, res) => {
   res.status(200).json({ message: 'Welcome to AROTU Social Media API' });
