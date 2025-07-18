@@ -14,8 +14,8 @@ router.post("/admins/remove", auth, roomController.removeAdminFromRoom);
 
 
 // Room messages
-router.post("/:id/messages", auth, roomController.postRoomMessages);
-router.get("/:id/messages", auth, roomController.getRoomMessages);
+router.post("/:id/messages", auth, roomController.postRoomMessages );
+router.get("/:id/messages", auth, roomController.getRoomMessages );
 
 
 module.exports = router;
