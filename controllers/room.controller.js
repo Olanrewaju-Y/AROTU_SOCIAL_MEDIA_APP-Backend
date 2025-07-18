@@ -129,26 +129,39 @@ exports.removeAdminFromRoom = async (req, res) => {
 };
 
 // Post room messages
-exports.postRoomMessage = async (req, res) => {
-  const { text, senderId } = req.body;
+exports.postRoomMessages = async (req, res) => {
+  const { text, userId } = req.body;
   const roomId = req.params.id;
 
   try {
+    // Ensure the room exists
+    const roomExists = await Room.findById(roomId);
+    if (!roomExists) {
+      return res.status(404).json({ message: 'Room not found' });
+    }
+
+    // Create and save the message
     const newMessage = new Message({
-      sender: senderId,
+      sender: userId,
       room: roomId,
-      text
+      text,
     });
 
     const savedMessage = await newMessage.save();
-    await savedMessage.populate('sender', 'username');
 
-    req.app.get('io').to(roomId).emit('receiveMessage', savedMessage);
-    res.status(201).json(savedMessage);
+    // Optionally populate for response
+    const populatedMessage = await savedMessage.populate('sender', 'username');
+
+    // Emit the message via Socket.IO (if using sockets)
+    req.app.get('io').to(roomId).emit('receiveMessage', populatedMessage);
+
+    res.status(201).json(populatedMessage);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to send message' });
+    console.error('Error posting message:', err);
+    res.status(500).json({ error: 'Message could not be saved.' });
   }
 };
+
 
 
 // Get room messages
