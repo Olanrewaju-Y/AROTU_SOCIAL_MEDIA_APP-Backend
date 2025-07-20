@@ -23,7 +23,9 @@ const chatSocket = (io) => {
     // Send message to room
     socket.on('room-message', async ({ sender, roomId, text }) => {
       const message = await Message.create({ sender, room: roomId, text });
-      io.to(roomId).emit('receive-room', message);
+      const populated = await message.populate('sender', 'username');
+      io.to(roomId).emit('receive-room', populated);
+
     });
 
     socket.on('disconnect', () => {
