@@ -25,7 +25,7 @@ const chatSocket = (io) => {
 socket.on('room-message', async ({ sender, roomId, text }) => {
   try {
     // Fetch full sender details (e.g., username)
-    const senderUser = await User.findById(sender).select('username _id');
+   const senderUser = await User.findById(sender).select('username _id avatar'); // Add 'avatar'
 
     if (!senderUser) return;
 
@@ -42,7 +42,11 @@ socket.on('room-message', async ({ sender, roomId, text }) => {
   }
 });
 
-
+ // In your backend socket.io connection file
+    socket.on('leave-room', (roomId) => {
+        socket.leave(roomId);
+        console.log(`Socket ${socket.id} left room ${roomId}`);
+    });
 
     socket.on('disconnect', () => {
       console.log('🔴 User disconnected:', socket.id);
