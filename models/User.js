@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema({
   isAdmin: { type: Boolean, default: false },
 
   // Profile
-  age: Number,
+  birthday: Date,
   gender: { type: String, enum: ['male', 'female', 'other'], default: 'other' },
   location: String,
   relationshipStatus: {

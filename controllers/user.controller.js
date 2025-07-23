@@ -7,15 +7,41 @@ exports.getProfile = async (req, res) => {
   res.json(user);
 };
 
+// Get user by ID
+exports.getUserById = async (req, res) => {
+  const { id: userId } = req.params;
+  const user = await User.findById(userId).select('-password');
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+  res.json(user);
+};
+
 // Update your profile
 exports.updateProfile = async (req, res) => {
-  const { bio, avatar, status } = req.body;
+  const { phone, birthday, gender, location, relationshipStatus, lookingFor, roomNickname, avatar, bio, status } = req.body;
   const user = await User.findByIdAndUpdate(
     req.user.id,
-    { bio, avatar, status },
+    { phone, birthday, gender, location, relationshipStatus, lookingFor, roomNickname, avatar, bio, status },
     { new: true }
   ).select('-password');
   res.json(user);
+};
+
+
+// Get all users
+exports.getAllUsers = async (req, res) => {
+  const users = await User.find().select('-password');
+  res.json(users);
+};
+
+// Delete user account
+exports.deleteAccount = async (req, res) => {
+  const user = await User.findByIdAndDelete(req.user.id);
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+  res.json({ message: 'User account deleted' });
 };
 
 // Block a user
@@ -48,6 +74,7 @@ exports.sendFriendRequest = async (req, res) => {
   }
   res.json({ message: 'Friend request sent' });
 };
+
 // Accept friend request
 exports.acceptFriendRequest = async (req, res) => {
   const { id: requestId } = req.params;
@@ -61,6 +88,7 @@ exports.acceptFriendRequest = async (req, res) => {
   }
   res.json({ message: 'Friend request accepted' });
 };
+
 // Reject friend request
 exports.rejectFriendRequest = async (req, res) => {
   const { id: requestId } = req.params;
@@ -71,18 +99,21 @@ exports.rejectFriendRequest = async (req, res) => {
   await user.save();
   res.json({ message: 'Friend request rejected' });
 };
+
 // Get friends list
 exports.getFriendsList = async (req, res) => {
   const user = await User.findById(req.user.id)
     .populate('friends', 'username avatar bio');
   res.json(user.friends);
 };
+
 // Get friend requests
 exports.getFriendRequests = async (req, res) => {
   const user = await User.findById(req.user.id)
     .populate('friendRequestsReceived', 'username avatar bio');
   res.json(user.friendRequestsReceived);
 };
+
 // Unfriend a user
 exports.unfriendUser = async (req, res) => {
   const { id: friendId } = req.params;
@@ -91,15 +122,7 @@ exports.unfriendUser = async (req, res) => {
   await user.save();
   res.json({ message: 'User unfriended' });
 };
-// Get user by ID
-exports.getUserById = async (req, res) => {
-  const { id: userId } = req.params;
-  const user = await User.findById(userId).select('-password');
-  if (!user) {
-    return res.status(404).json({ message: 'User not found' });
-  }
-  res.json(user);
-};
+
 // Follow friend
 exports.followFriend = async (req, res) => {
   const { id: friendId } = req.params;
@@ -110,6 +133,7 @@ exports.followFriend = async (req, res) => {
   }
   res.json({ message: 'User followed' });
 };
+
 // Unfollow friend
 exports.unfollowFriend = async (req, res) => {
   const { id: friendId } = req.params;
@@ -118,6 +142,7 @@ exports.unfollowFriend = async (req, res) => {
   await user.save();
   res.json({ message: 'User unfollowed' });
 };
+
 // Get following list
 exports.getFollowingList = async (req, res) => {
   const user = await User.findById(req.user.id)
@@ -127,6 +152,7 @@ exports.getFollowingList = async (req, res) => {
   }
   res.json(user.following);
 };
+
 // Get followers list
 exports.getFollowersList = async (req, res) => {
   const user = await User.findById(req.user.id)
@@ -135,21 +161,6 @@ exports.getFollowersList = async (req, res) => {
     return res.status(404).json({ message: 'User not found' });
   }
   res.json(user.followers);
-};
-
-// Get all users
-exports.getAllUsers = async (req, res) => {
-  const users = await User.find().select('-password');
-  res.json(users);
-};
-
-// Delete user account
-exports.deleteAccount = async (req, res) => {
-  const user = await User.findByIdAndDelete(req.user.id);
-  if (!user) {
-    return res.status(404).json({ message: 'User not found' });
-  }
-  res.json({ message: 'User account deleted' });
 };
 
 // Update user settings

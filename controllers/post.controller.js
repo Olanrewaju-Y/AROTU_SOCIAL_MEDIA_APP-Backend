@@ -90,25 +90,9 @@ exports.getPostById = async (req, res) => {
   res.json(post);
 };
 
-// Get posts by user ID
-exports.getPostsByUserId = async (req, res) => {
-  const posts = await Post.find({ user: req.params.id })
-    .populate('user', 'username avatar')
-    .sort({ createdAt: -1 });
-  res.json(posts);
-};
-
 // Get posts by hashtag
 exports.getPostsByHashtag = async (req, res) => {
   const posts = await Post.find({ content: { $regex: req.params.hashtag, $options: 'i' } })
-    .populate('user', 'username avatar')
-    .sort({ createdAt: -1 });
-  res.json(posts);
-};
-
-// Get posts by room ID
-exports.getPostsByRoomId = async (req, res) => {
-  const posts = await Post.find({ room: req.params.id })
     .populate('user', 'username avatar')
     .sort({ createdAt: -1 });
   res.json(posts);
