@@ -8,7 +8,6 @@ const {
   editPostSettings,
   getFriendsFeed,
   getAllPosts,
-  updatePost,
   deletePost,
   toggleLike,
   addComment,
@@ -20,7 +19,7 @@ const {
   unbookmarkPost,
   getComments,
   deleteComment,
-  repost
+  repost,
 } = require('../controllers/post.controller');
 
 
@@ -32,7 +31,6 @@ router.get('/friends-posts', auth, getFriendsPosts);
 router.put('/:id/settings', auth, editPostSettings);
 router.get('/friends-feed', auth, getFriendsFeed);
 router.get('/all-posts', getAllPosts);
-router.put('/:id', auth, updatePost);
 router.delete('/:id', auth, deletePost);
 router.get('/search', auth, searchPosts);
 router.post('/:id/repost', auth, repost);
