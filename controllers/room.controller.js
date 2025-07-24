@@ -5,22 +5,29 @@ const Message = require('../models/Message'); // import the Message model
 
 // Create a new room
 exports.createRoom = async (req, res) => {
-    try {
-        const { name, isPrivate, members, parentRoom, type } = req.body;
+  try {
+    const { name, isPrivate = false, description, members = [], parentRoom, type } = req.body;
 
-        const newRoom = new Room({
-            name,
-            isPrivate,
-            members,
-            parentRoom,
-            type
-        });
-
-        const savedRoom = await newRoom.save();
-        res.status(201).json(savedRoom);
-    } catch (error) {
-        res.status(500).json({ message: "Error creating room", error });
+    if (!name) {
+      return res.status(400).json({ message: "Room name is required" });
     }
+
+    const newRoom = new Room({
+      name,
+      isPrivate,
+      description: req.body.description || '',
+      members: members.length > 0 ? members : [req.user.id], // fallback to creator as member
+      parentRoom: parentRoom || null,
+      type: type || 'public',
+      creator: req.user.id
+    });
+
+    const savedRoom = await newRoom.save();
+    res.status(201).json(savedRoom);
+  } catch (error) {
+    console.error("Room creation failed:", error); // log for debugging
+    res.status(500).json({ message: "Error creating room", error: error.message });
+  }
 };
 
 // Get all rooms
@@ -58,21 +65,50 @@ exports.getRoomById = async (req, res) => {
 
 // Update a room
 exports.updateRoom = async (req, res) => {
-    try {
-        const updatedRoom = await Room.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { new: true }
-        ).populate("members").populate("parentRoom");
+  try {
+    const { name, isPrivate, description, members, parentRoom, type } = req.body;
 
-        if (!updatedRoom) {
-            return res.status(404).json({ message: "Room not found" });
-        }
-        res.status(200).json(updatedRoom);
-    } catch (error) {
-        res.status(500).json({ message: "Error updating room", error });
+    // Optional: protect immutable fields
+    const blockedFields = ['creator', '_id', 'createdAt', 'updatedAt'];
+    for (const key of Object.keys(req.body)) {
+      if (blockedFields.includes(key)) {
+        return res.status(400).json({ message: `Field "${key}" cannot be updated.` });
+      }
     }
+
+    // Optional: validate `type` if used
+    const allowedTypes = ['public', 'private'];
+    if (type && !allowedTypes.includes(type)) {
+      return res.status(400).json({ message: `Invalid room type: ${type}` });
+    }
+
+    const updatedFields = {};
+    if (name !== undefined) updatedFields.name = name;
+    if (isPrivate !== undefined) updatedFields.isPrivate = isPrivate;
+    if (description !== undefined) updatedFields.description = description;
+    if (members !== undefined) updatedFields.members = members;
+    if (parentRoom !== undefined) updatedFields.parentRoom = parentRoom;
+    if (type !== undefined) updatedFields.type = type;
+
+    const updatedRoom = await Room.findByIdAndUpdate(
+      req.params.id,
+      updatedFields,
+      { new: true, runValidators: true }
+    )
+      .populate("members")
+      .populate("parentRoom");
+
+    if (!updatedRoom) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    res.status(200).json(updatedRoom);
+  } catch (error) {
+    console.error("Error updating room:", error);
+    res.status(500).json({ message: "Error updating room", error: error.message });
+  }
 };
+
 
 // Delete a room
 exports.deleteRoom = async (req, res) => {
