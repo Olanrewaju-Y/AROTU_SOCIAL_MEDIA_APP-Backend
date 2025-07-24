@@ -3,165 +3,246 @@ const User = require('../models/User');
 
 // Create post
 exports.createPost = async (req, res) => {
-  const { content, image } = req.body;
-  const post = await Post.create({ user: req.user.id, content, image });
-  res.status(201).json(post);
-};
-
-// Get my Posts
-exports.getMyPosts = async (req, res) => {
-  const posts = await Post.find({ user: req.user.id });
-  res.json(posts);
-};
-
-// Get friends post
-exports.getFriendsPosts = async (req, res) => {
-  const user = await User.findById(req.user.id).populate('friends');
-  const ids = [req.user.id, ...user.friends.map(f => f._id)];
-  const posts = await Post.find({ user: { $in: ids } });
-  res.json(posts);
-};
-
-// Edit Post settings
-exports.editPostSettings = async (req, res) => {
-  const { content, image, visibility } = req.body;
-  const post = await Post.findByIdAndUpdate(req.params.id, { content, image, visibility }, { new: true });
-  if (!post) {
-    return res.status(404).json({ message: 'Post not found' });
+  try {
+    const { content, image } = req.body;
+    const post = await Post.create({ user: req.user.id, content, image });
+    res.status(201).json(post);
+  } catch (err) {
+    res.status(500).json({ message: 'Error creating post' });
   }
-  res.json(post);
 };
 
-// Get feed (user + friends)
+// Get my posts
+exports.getMyPosts = async (req, res) => {
+  try {
+    const posts = await Post.find({ user: req.user.id }).sort({ createdAt: -1 });
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching your posts' });
+  }
+};
+
+// Get friends' posts
+exports.getFriendsPosts = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).populate('friends');
+    const ids = [req.user.id, ...user.friends.map(f => f._id)];
+    const posts = await Post.find({ user: { $in: ids } }).sort({ createdAt: -1 });
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching friends posts' });
+  }
+};
+
+// Edit post
+exports.editPostSettings = async (req, res) => {
+  try {
+    const { content, image, visibility } = req.body;
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    if (post.user.toString() !== req.user.id)
+      return res.status(403).json({ message: 'Unauthorized' });
+
+    post.content = content ?? post.content;
+    post.image = image ?? post.image;
+    post.visibility = visibility ?? post.visibility;
+    await post.save();
+
+    res.json(post);
+  } catch (err) {
+    res.status(500).json({ message: 'Error editing post' });
+  }
+};
+
+// Get friends' feed
 exports.getFriendsFeed = async (req, res) => {
-  const user = await User.findById(req.user.id).populate('friends');
-  const ids = [req.user.id, ...user.friends.map(f => f._id)];
-  const feed = await Post.find({ user: { $in: ids } })
-    .populate('user', 'username avatar')
-    .sort({ createdAt: -1 });
-  res.json(feed);
+  try {
+    const user = await User.findById(req.user.id).populate('friends');
+    const ids = [req.user.id, ...user.friends.map(f => f._id)];
+    const feed = await Post.find({ user: { $in: ids } })
+      .populate('user', 'username avatar')
+      .sort({ createdAt: -1 });
+    res.json(feed);
+  } catch (err) {
+    res.status(500).json({ message: 'Error loading feed' });
+  }
 };
 
 // Get all posts
 exports.getAllPosts = async (req, res) => {
-  const posts = await Post.find({})
-    .populate('user', 'username avatar')
-    .sort({ createdAt: -1 });
-  res.json(posts);
+  try {
+    const posts = await Post.find({})
+      .populate('user', 'username avatar')
+      .sort({ createdAt: -1 });
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching all posts' });
+  }
 };
 
-// delete post
+// Delete post
 exports.deletePost = async (req, res) => {
-  const post = await Post.findById(req.params.id);
-  if (!post) {
-    return res.status(404).json({ message: 'Post not found' });
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    if (post.user.toString() !== req.user.id)
+      return res.status(403).json({ message: 'Unauthorized to delete post' });
+
+    await post.deleteOne();
+    res.json({ message: 'Post deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Error deleting post' });
   }
-  await post.remove();
-  res.json({ message: 'Post deleted successfully' });
 };
 
-// Like or unlike
+// Toggle like
 exports.toggleLike = async (req, res) => {
-  const post = await Post.findById(req.params.id);
-  const alreadyLiked = post.likes.includes(req.user.id);
-  if (alreadyLiked) {
-    post.likes.pull(req.user.id);
-  } else {
-    post.likes.push(req.user.id);
+  try {
+    const post = await Post.findById(req.params.id);
+    const hasLiked = post.likes.includes(req.user.id);
+    if (hasLiked) {
+      post.likes.pull(req.user.id);
+    } else {
+      post.likes.push(req.user.id);
+    }
+    await post.save();
+    res.json({ liked: !hasLiked });
+  } catch (err) {
+    res.status(500).json({ message: 'Error toggling like' });
   }
-  await post.save();
-  res.json({ liked: !alreadyLiked });
 };
 
 // Add comment
 exports.addComment = async (req, res) => {
-  const { text } = req.body;
-  const post = await Post.findById(req.params.id);
-  post.comments.push({ user: req.user.id, text });
-  await post.save();
-  res.json(post.comments[post.comments.length - 1]);
+  try {
+    const { text } = req.body;
+    const post = await Post.findById(req.params.id);
+    post.comments.push({ user: req.user.id, text });
+    await post.save();
+    res.json(post.comments[post.comments.length - 1]);
+  } catch (err) {
+    res.status(500).json({ message: 'Error adding comment' });
+  }
+};
+
+// Get comments
+exports.getComments = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id)
+      .populate('comments.user', 'username avatar');
+    res.json(post.comments);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching comments' });
+  }
+};
+
+// Delete comment
+exports.deleteComment = async (req, res) => {
+  try {
+    const { commentId } = req.body;
+    const post = await Post.findById(req.params.id);
+    post.comments = post.comments.filter(comment => comment._id.toString() !== commentId);
+    await post.save();
+    res.json({ message: 'Comment deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Error deleting comment' });
+  }
 };
 
 // Get post by ID
 exports.getPostById = async (req, res) => {
-  const post = await Post.findById(req.params.id)
-    .populate('user', 'username avatar')
-    .populate('comments.user', 'username avatar');
-  res.json(post);
+  try {
+    const post = await Post.findById(req.params.id)
+      .populate('user', 'username avatar')
+      .populate('comments.user', 'username avatar');
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    res.json(post);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching post' });
+  }
 };
 
 // Get posts by hashtag
 exports.getPostsByHashtag = async (req, res) => {
-  const posts = await Post.find({ content: { $regex: req.params.hashtag, $options: 'i' } })
-    .populate('user', 'username avatar')
-    .sort({ createdAt: -1 });
-  res.json(posts);
+  try {
+    const posts = await Post.find({ content: { $regex: `#${req.params.hashtag}`, $options: 'i' } })
+      .populate('user', 'username avatar')
+      .sort({ createdAt: -1 });
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ message: 'Error searching by hashtag' });
+  }
 };
 
-// Get posts by search query
+// Search posts
 exports.searchPosts = async (req, res) => {
-  const query = req.query.q;
-  const posts = await Post.find({
-    content: { $regex: query, $options: 'i' }
-  }).populate('user', 'username avatar').sort({ createdAt: -1 });
-  res.json(posts);
+  try {
+    const query = req.query.q;
+    const posts = await Post.find({ content: { $regex: query, $options: 'i' } })
+      .populate('user', 'username avatar')
+      .sort({ createdAt: -1 });
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ message: 'Search failed' });
+  }
 };
 
 // Bookmark post
 exports.bookmarkPost = async (req, res) => {
-  const post = await Post.findById(req.params.id);
-  const alreadyBookmarked = post.bookmarks.includes(req.user.id);
-  if (alreadyBookmarked) {
-    post.bookmarks.pull(req.user.id);
-  } else {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (post.bookmarks.includes(req.user.id)) {
+      post.bookmarks.pull(req.user.id);
+      await post.save();
+      return res.json({ bookmarked: false });
+    }
     post.bookmarks.push(req.user.id);
+    await post.save();
+    res.json({ bookmarked: true });
+  } catch (err) {
+    res.status(500).json({ message: 'Bookmark failed' });
   }
-  await post.save();
-  res.json({ bookmarked: !alreadyBookmarked });
 };
 
 // Get bookmarks
 exports.getBookmarks = async (req, res) => {
-  const user = await User.findById(req.user.id).populate('bookmarks');
-  res.json(user.bookmarks);
+  try {
+    const user = await User.findById(req.user.id).populate({
+      path: 'bookmarks',
+      populate: { path: 'user', select: 'username avatar' }
+    });
+    res.json(user.bookmarks);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching bookmarks' });
+  }
 };
 
 // Unbookmark post
 exports.unbookmarkPost = async (req, res) => {
-  const post = await Post.findById(req.params.id);
-  post.bookmarks.pull(req.user.id);
-  await post.save();
-  res.json({ message: 'Post unbookmarked' });
-};
-
-// Comments
-exports.getComments = async (req, res) => {
-  const post = await Post.findById(req.params.id)
-    .populate('comments.user', 'username avatar');
-  res.json(post.comments);
-};
-
-// delete comment
-exports.deleteComment = async (req, res) => {
-  const { commentId } = req.body;
-  const post = await Post.findById(req.params.id);
-  post.comments = post.comments.filter(comment => comment._id.toString() !== commentId);
-  await post.save();
-  res.json({ message: 'Comment deleted successfully' });
-};
-
-// repost
-exports.repost = async (req, res) => {
-  const post = await Post.findById(req.params.id);
-  if (!post) {
-    return res.status(404).json({ message: 'Post not found' });
+  try {
+    const post = await Post.findById(req.params.id);
+    post.bookmarks.pull(req.user.id);
+    await post.save();
+    res.json({ message: 'Post unbookmarked' });
+  } catch (err) {
+    res.status(500).json({ message: 'Error unbookmarking post' });
   }
-  const repost = await Post.create({
-    user: req.user.id,
-    content: `Repost of ${post._id}`,
-    originalPost: post._id
-  });
-  res.status(201).json(repost);
 };
 
+// Repost
+exports.repost = async (req, res) => {
+  try {
+    const original = await Post.findById(req.params.id);
+    if (!original) return res.status(404).json({ message: 'Original post not found' });
 
+    const repost = await Post.create({
+      user: req.user.id,
+      content: `Repost of ${original._id}`,
+      originalPost: original._id
+    });
+
+    res.status(201).json(repost);
+  } catch (err) {
+    res.status(500).json({ message: 'Error reposting' });
+  }
+};
