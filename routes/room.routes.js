@@ -6,11 +6,12 @@ const {auth} = require('../middleware/authMiddleware');
 
 router.post("/", auth, roomController.createRoom);
 router.get("/", roomController.getAllRooms);
+router.post("/admins/add", auth, roomController.addAdminToRoom);
+router.post("/admins/remove", auth, roomController.removeAdminFromRoom);
 router.get("/:id", roomController.getRoomById);
 router.put("/:id", auth, roomController.updateRoom);
 router.delete("/:id", auth, roomController.deleteRoom);
-router.post("/admins/add", auth, roomController.addAdminToRoom);
-router.post("/admins/remove", auth, roomController.removeAdminFromRoom);
+
 
 
 // Room messages

@@ -6,8 +6,9 @@ const {
   sendMessage
 } = require('../controllers/chat.controller');
 
-router.get('/private/:userId', auth, getPrivateMessages);
 router.post('/private', auth, sendMessage);
+router.get('/private/:userId', auth, getPrivateMessages);
+
 
 
 module.exports = router;
