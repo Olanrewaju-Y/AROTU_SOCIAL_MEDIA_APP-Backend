@@ -6,7 +6,7 @@ const Message = require('../models/Message'); // import the Message model
 // Create a new room
 exports.createRoom = async (req, res) => {
   try {
-    const { name, isPrivate = false, description, members = [], parentRoom, type } = req.body;
+    const { name, description, avatar, isPublic, password, isPrivate = false, members = [], parentRoom, type } = req.body;
 
     if (!name) {
       return res.status(400).json({ message: "Room name is required" });
@@ -14,8 +14,11 @@ exports.createRoom = async (req, res) => {
 
     const newRoom = new Room({
       name,
-      isPrivate,
       description: req.body.description || '',
+      avatar: req.body.avatar || '',
+      isPublic,
+      password: isPrivate ? req.body.password : null, // only set password if room is private
+      isPrivate,
       members: members.length > 0 ? members : [req.user.id], // fallback to creator as member
       parentRoom: parentRoom || null,
       type: type || 'public',
