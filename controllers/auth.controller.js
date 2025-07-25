@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { handleOnlineStatus } = require('../utils/server'); // Assuming you have a utility to handle online status
 
 
 // Register function
@@ -56,8 +57,8 @@ exports.login = async (req, res) => {
       process.env.JWT_ACCESS_SECRET,
       { expiresIn: process.env.JWT_ACCESS_EXPIRATION }
     );
-
-    res.json({ token, user });
+    res.status(200).json({ token, user });
+    handleOnlineStatus(user._id, true); // Set user as online
   } catch (err) {
     res.status(500).json({ message: 'Login failed', error: err.message });
   }
