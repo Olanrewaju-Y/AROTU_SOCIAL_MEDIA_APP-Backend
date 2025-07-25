@@ -1,6 +1,7 @@
 const Room = require("../models/Room");
 const User = require("../models/User");
 const Message = require('../models/Message'); // import the Message model
+const bcrypt = require("bcrypt");
 
 
 // Create a new room
@@ -12,12 +13,14 @@ exports.createRoom = async (req, res) => {
       return res.status(400).json({ message: "Room name is required" });
     }
 
+    const hashedPassword = await bcrypt.hash(password, 12);
+
     const newRoom = new Room({
       name,
       description: req.body.description || '',
       avatar: req.body.avatar || '',
       isPublic,
-      password: isPrivate ? req.body.password : null, // only set password if room is private
+      password: isPrivate ? hashedPassword : null, // only set password if room is private
       isPrivate,
       members: members.length > 0 ? members : [req.user.id], // fallback to creator as member
       parentRoom: parentRoom || null,
@@ -69,7 +72,7 @@ exports.getRoomById = async (req, res) => {
 // Update a room
 exports.updateRoom = async (req, res) => {
   try {
-    const { name, isPrivate, description, members, parentRoom, type } = req.body;
+    const { name, description, avatar, isPrivate, members, parentRoom, type } = req.body;
 
     // Optional: protect immutable fields
     const blockedFields = ['creator', '_id', 'createdAt', 'updatedAt'];
@@ -89,6 +92,11 @@ exports.updateRoom = async (req, res) => {
     if (name !== undefined) updatedFields.name = name;
     if (isPrivate !== undefined) updatedFields.isPrivate = isPrivate;
     if (description !== undefined) updatedFields.description = description;
+    if (avatar !== undefined) updatedFields.avatar = avatar;
+    if (isPrivate && req.body.password) {
+      const hashedPassword = await bcrypt.hash(req.body.password, 12);
+      updatedFields.password = hashedPassword;
+    }
     if (members !== undefined) updatedFields.members = members;
     if (parentRoom !== undefined) updatedFields.parentRoom = parentRoom;
     if (type !== undefined) updatedFields.type = type;
@@ -179,7 +187,7 @@ exports.postRoomMessages = async (req, res) => {
     const newMessage = new Message({ sender: userId, room: roomId, text });
     const savedMessage = await newMessage.save();
 
-    const populated = await savedMessage.populate('sender', 'username');
+    const populated = await savedMessage.populate('sender', 'roomNickname');
 
     const io = req.app.get('io');
     if (io) io.to(roomId).emit('receiveMessage', populated);
@@ -197,7 +205,7 @@ exports.getRoomMessages = async (req, res) => {
     const roomId = req.params.id;
 
     const messages = await Message.find({ room: roomId })
-      .populate('sender', 'username') // populate sender's username
+      .populate('sender', 'roomNickname') // populate sender's username
       .sort({ createdAt: 1 }); // optional: sort oldest to newest
 
     res.status(200).json(messages);
