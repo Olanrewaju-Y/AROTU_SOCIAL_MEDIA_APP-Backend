@@ -22,21 +22,25 @@ const chatSocket = (io) => {
     });
 
     // Send message to room
- socket.on('room-message', (message) => {
-      // The message object from the client contains the full saved message.
-      // The 'room' property could be a string ID or a populated object.
-      // We need to ensure we get the string ID for the socket room.
-      const roomId = message?.room?._id || message?.room;
+socket.on('room-message', async ({ sender, roomId, text }) => {
+  try {
+    // Fetch full sender details (e.g., username)
+   const senderUser = await User.findById(sender).select('username _id avatar'); // Add 'avatar'
 
-      if (roomId && message) {
-        // Broadcast to all other clients in the room.
-        // The sender's client already added the message to its UI.
-        socket.to(roomId).emit('receive-room', message);
-      } else {
-        console.error('Error: "room-message" received with invalid data.', { message });
-      }
-    });
+    if (!senderUser) return;
 
+    const message = {
+      sender: senderUser,
+      room: roomId,
+      text,
+      createdAt: new Date().toISOString(),
+    };
+
+    io.to(roomId).emit('receive-room', message);
+  } catch (err) {
+    console.error('❌ Socket room-message error:', err);
+  }
+});
 
  // In your backend socket.io connection file
     socket.on('leave-room', (roomId) => {
@@ -52,5 +56,3 @@ const chatSocket = (io) => {
 
 module.exports = chatSocket;
 
-
-   
