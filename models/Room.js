@@ -4,7 +4,6 @@ const roomSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: { type: String, default: '' },
   avatar: { type: String, default: '' },
-  isPublic: { type: Boolean, default: true },
   isPrivate: { type: Boolean, default: false },
   members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   admins: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
