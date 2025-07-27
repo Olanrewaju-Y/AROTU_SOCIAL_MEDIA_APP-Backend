@@ -187,7 +187,7 @@ exports.postRoomMessages = async (req, res) => {
     const newMessage = new Message({ sender: userId, room: roomId, text });
     const savedMessage = await newMessage.save();
 
-    const populated = await savedMessage.populate('sender', 'roomNickname');
+    const populated = await savedMessage.populate('sender', 'roomNickname username avatar');
 
     const io = req.app.get('io');
     if (io) io.to(roomId).emit('receiveMessage', populated);
@@ -205,7 +205,7 @@ exports.getRoomMessages = async (req, res) => {
     const roomId = req.params.id;
 
     const messages = await Message.find({ room: roomId })
-      .populate('sender', 'roomNickname') // populate sender's username
+      .populate('sender', 'roomNickname username avatar') // populate sender's roomNickname
       .sort({ createdAt: 1 }); // optional: sort oldest to newest
 
     res.status(200).json(messages);
