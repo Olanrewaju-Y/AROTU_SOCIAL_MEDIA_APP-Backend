@@ -68,39 +68,44 @@ exports.getRoomById = async (req, res) => {
 // Update a room
 exports.updateRoom = async (req, res) => {
   try {
-    const { name, description, avatar, isPrivate, members, parentRoom, type } = req.body;
+    const { name, description, avatar, isPrivate, type, parentRoom } = req.body;
     const roomId = req.params.id;
 
-    const updatedRoom = await Room.findByIdAndUpdate(
-      roomId,
-      {
-        name: name || undefined,
-        description: description || undefined,
-        avatar: avatar || undefined,
-        isPrivate: isPrivate !== undefined ? isPrivate : undefined,
-        members: members || undefined,
-        parentRoom: parentRoom || undefined,
-        type: type || undefined
-      },
-      { new: true }
-    ); 
-    if (!updatedRoom) {
-      return res.status(404).json({ message: "Room not found" });
+    // Find the room by its ID
+    const room = await Room.findById(roomId);
+
+    if (!room) {
+      return res.status(404).json({ message: 'Room not found' });
     }
-    // Ensure the user is a member of the room if it's private
-    if (updatedRoom.isPrivate && !updatedRoom.members.includes(req.user.id)) {
-      return res.status(403).json({ message: "Access denied to private room" });
+    // check if req.user.id is the room.creator or an admin.
+    if (room.creator.toString() !== req.user.id && !room.admins.includes(req.user.id)) {
+      return res.status(403).json({ message: 'You do not have permission to update this room.' });
     }
-    // Populate members and parentRoom for the updated room
-    await updatedRoom.populate("members").populate("parentRoom");
-    // Return the updated room
+        
+    // Update the fields that were provided in the request body
+    room.name = name ?? room.name;
+    room.description = description ?? room.description;
+    room.avatar = avatar ?? room.avatar;
+    room.isPrivate = isPrivate ?? room.isPrivate;
+    room.type = type ?? room.type;
+
+    // Handle parentRoom logic
+    if (type === 'sub' && parentRoom) {
+      const parent = await Room.findById(parentRoom);
+      if (!parent || parent.type !== 'main') {
+        return res.status(400).json({ message: 'Invalid parent room specified.' });
+      }
+      room.parentRoom = parentRoom;
+    } else {
+      room.parentRoom = undefined;
+    }
+    const updatedRoom = await room.save();
     res.status(200).json(updatedRoom);
   } catch (error) {
-    console.error("Error updating room:", error);
-    res.status(500).json({ message: "Error updating room", error: error.message });
+    console.error('Error updating room:', error);
+    res.status(500).json({ message: 'Server error while updating room.' });
   }
 };
-
 
 // Delete a room
 exports.deleteRoom = async (req, res) => {
