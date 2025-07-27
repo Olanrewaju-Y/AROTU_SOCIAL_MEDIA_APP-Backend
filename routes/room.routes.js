@@ -6,6 +6,7 @@ const {auth} = require('../middleware/authMiddleware');
 
 router.post("/", auth, roomController.createRoom);
 router.get("/", roomController.getAllRooms);
+router.get("/public", roomController.getPublicRooms);
 router.get("/private", roomController.getPrivateRooms);
 router.post("/admins/add", auth, roomController.addAdminToRoom);
 router.post("/admins/remove", auth, roomController.removeAdminFromRoom);
