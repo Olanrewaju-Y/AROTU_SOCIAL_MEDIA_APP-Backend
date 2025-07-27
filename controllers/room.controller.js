@@ -7,20 +7,16 @@ const bcrypt = require("bcrypt");
 // Create a new room
 exports.createRoom = async (req, res) => {
   try {
-    const { name, description, avatar, isPublic, password, isPrivate = false, members = [], parentRoom, type } = req.body;
+    const { name, description, avatar, isPrivate = false, members = [], parentRoom, type } = req.body;
 
     if (!name) {
       return res.status(400).json({ message: "Room name is required" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
-
     const newRoom = new Room({
       name,
       description: req.body.description || '',
       avatar: req.body.avatar || '',
-      isPublic,
-      password: isPrivate ? hashedPassword : null, // only set password if room is private
       isPrivate,
       members: members.length > 0 ? members : [req.user.id], // fallback to creator as member
       parentRoom: parentRoom || null,
@@ -73,46 +69,31 @@ exports.getRoomById = async (req, res) => {
 exports.updateRoom = async (req, res) => {
   try {
     const { name, description, avatar, isPrivate, members, parentRoom, type } = req.body;
-
-    // Optional: protect immutable fields
-    const blockedFields = ['creator', '_id', 'createdAt', 'updatedAt'];
-    for (const key of Object.keys(req.body)) {
-      if (blockedFields.includes(key)) {
-        return res.status(400).json({ message: `Field "${key}" cannot be updated.` });
-      }
-    }
-
-    // Optional: validate `type` if used
-    const allowedTypes = ['public', 'private'];
-    if (type && !allowedTypes.includes(type)) {
-      return res.status(400).json({ message: `Invalid room type: ${type}` });
-    }
-
-    const updatedFields = {};
-    if (name !== undefined) updatedFields.name = name;
-    if (isPrivate !== undefined) updatedFields.isPrivate = isPrivate;
-    if (description !== undefined) updatedFields.description = description;
-    if (avatar !== undefined) updatedFields.avatar = avatar;
-    if (isPrivate && req.body.password) {
-      const hashedPassword = await bcrypt.hash(req.body.password, 12);
-      updatedFields.password = hashedPassword;
-    }
-    if (members !== undefined) updatedFields.members = members;
-    if (parentRoom !== undefined) updatedFields.parentRoom = parentRoom;
-    if (type !== undefined) updatedFields.type = type;
+    const roomId = req.params.id;
 
     const updatedRoom = await Room.findByIdAndUpdate(
-      req.params.id,
-      updatedFields,
-      { new: true, runValidators: true }
-    )
-      .populate("members")
-      .populate("parentRoom");
-
+      roomId,
+      {
+        name: name || undefined,
+        description: description || undefined,
+        avatar: avatar || undefined,
+        isPrivate: isPrivate !== undefined ? isPrivate : undefined,
+        members: members || undefined,
+        parentRoom: parentRoom || undefined,
+        type: type || undefined
+      },
+      { new: true }
+    ); 
     if (!updatedRoom) {
       return res.status(404).json({ message: "Room not found" });
     }
-
+    // Ensure the user is a member of the room if it's private
+    if (updatedRoom.isPrivate && !updatedRoom.members.includes(req.user.id)) {
+      return res.status(403).json({ message: "Access denied to private room" });
+    }
+    // Populate members and parentRoom for the updated room
+    await updatedRoom.populate("members").populate("parentRoom");
+    // Return the updated room
     res.status(200).json(updatedRoom);
   } catch (error) {
     console.error("Error updating room:", error);

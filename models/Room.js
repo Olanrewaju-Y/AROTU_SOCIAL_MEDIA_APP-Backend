@@ -5,7 +5,6 @@ const roomSchema = new mongoose.Schema({
   description: { type: String, default: '' },
   avatar: { type: String, default: '' },
   isPublic: { type: Boolean, default: true },
-  password: { type: String, default: '' }, // for private rooms
   isPrivate: { type: Boolean, default: false },
   members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   admins: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
