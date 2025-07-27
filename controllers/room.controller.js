@@ -35,26 +35,51 @@ exports.createRoom = async (req, res) => {
 // Get all rooms
 exports.getAllRooms = async (req, res) => {
     try {
-      // It's good practice to ensure the user object from your auth middleware is present.
+        // 1. Authentication Check: Ensure user is authenticated.
         if (!req.user || !req.user.id) {
             return res.status(401).json({ message: "Authentication required." });
         }
 
-        const rooms = await Room.find().populate("members").populate("parentRoom");
+        // 2. Populate Members and Parent Room:
+        //    Ensure your Room schema defines 'members' and 'parentRoom' as references.
+        //    For 'members', it should likely be an array of ObjectIds referencing your User model.
+        //    For 'parentRoom', it should likely be an ObjectId referencing another Room model,
+        //    and allow it to be null/undefined if not every room has a parent.
+        const rooms = await Room.find()
+            .populate({
+                path: 'members',
+                select: 'id' // Only populate the 'id' of members for comparison efficiency
+            })
+            .populate({
+                path: 'parentRoom',
+                // You might not need to select specific fields for parentRoom unless you display it
+                // If parentRoom can be null, ensure your schema handles it.
+            });
 
-        // Filter out private rooms the user is not a member of
+        // 3. Filter Accessible Rooms:
         const accessibleRooms = rooms.filter(room => {
-            if (!room.isPrivate) return true; // Public rooms are always accessible
-            // For private rooms, check if the user is a member.
-            // `room.members` is an array of User objects, so we must check the `_id` of each member.
-            return room.members.some(member => member._id.toString() === req.user.id);
+            // Always allow public rooms
+            if (!room.isPrivate) {
+                return true;
+            }
+
+            // For private rooms, check if the current user is a member.
+            // Ensure `room.members` is an array and contains valid objects after population.
+            // We use optional chaining `?.` and ensure `_id` exists before calling `toString()`.
+            return room.members && room.members.some(member =>
+                member && member._id && member._id.toString() === req.user.id
+            );
         });
 
+        // 4. Send Filtered Rooms:
         res.status(200).json(accessibleRooms);
+
     } catch (error) {
-    console.error("Error fetching rooms:", error); // Log the actual error for debugging
-        res.status(500).json({ message: "Server error while fetching rooms" }); // Send a generic error to the client
-   }
+        // 5. Robust Error Logging and Response:
+        console.error("Error fetching rooms:", error); // Log the actual error for detailed debugging on the server
+        // In a production environment, avoid sending specific error details to the client
+        res.status(500).json({ message: "Server error while fetching rooms. Please try again later." });
+    }
 };
 
 // Get a single room by ID
