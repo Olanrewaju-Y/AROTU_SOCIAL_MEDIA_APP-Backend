@@ -21,6 +21,56 @@ const chatSocket = (io) => {
       io.to(receiver).emit('receive-private', message);
     });
 
+    // Handle real-time room messages
+    socket.on('room-message', async (payload) => {
+      try {
+        // IMPORTANT: You need a secure way to get the userId from the connected socket.
+        // This is a placeholder for your actual authentication logic.
+        // For example, you might have middleware that sets `socket.userId` on connection.
+        const userId = socket.userId; 
+        if (!userId) {
+          console.error("Unauthorized message: No userId found on socket", socket.id);
+          return; // Or emit an error back to the client
+        }
+
+        const { text, room: roomId } = payload;
+
+        if (!text || !roomId) {
+          return; // Or emit an error
+        }
+
+        // 1. Create and save the new message
+        const newMessage = new Message({
+          text,
+          sender: userId,
+          room: roomId,
+        });
+        await newMessage.save();
+
+        // 2. Populate the sender's details to send the complete object to all clients.
+        // This is crucial for the frontend to display avatar and roomNickname correctly.
+        const savedMessage = await Message.findById(newMessage._id)
+          .populate('sender', 'username avatar roomNickname');
+
+        // 3. Broadcast the complete message to everyone in the room (including the sender).
+        // The frontend is listening for 'receive-room'.
+        io.to(roomId).emit('receive-room', savedMessage);
+
+      } catch (error) {
+        console.error('Error handling room-message:', error);
+        // Optionally, emit an error back to the specific client that sent the message
+        socket.emit('message-error', { message: 'Could not send your message.' });
+      }
+    });
+
+
+
+
+
+
+
+
+
 // Post a new message to a room
 exports.postRoomMessages = async (req, res) => {
   try {
