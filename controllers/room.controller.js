@@ -32,43 +32,32 @@ exports.createRoom = async (req, res) => {
   }
 };
 
+
+
 // Get all rooms
-// exports.getRooms = async (req, res) => {
-//     try {
-//       // It's good practice to ensure the user object from your auth middleware is present.
-//         if (!req.user || !req.user.id) {
-//             return res.status(401).json({ message: "Authentication required." });
-//         }
 
-//         const rooms = await Room.find().populate("members").populate("parentRoom");
+// exports.getAllRooms = async (req, res) => {
+//   try {
+//     const rooms = await Room.find().populate("members").populate("parentRoom");
+//     // Filter out private rooms the user is not a member of
+//     const accessibleRooms = rooms.filter(room => !room.isPrivate || room.members.includes(req.user.id));
 
-//         // Filter out private rooms the user is not a member of
-//         const accessibleRooms = rooms.filter(room => {
-//             if (!room.isPrivate) return true; // Public rooms are always accessible
-//             // For private rooms, check if the user is a member.
-//             // `room.members` is an array of User objects, so we must check the `_id` of each member.
-//             return room.members.some(member => member._id.toString() === req.user.id);
-//         });
-
-//         res.status(200).json(accessibleRooms);
-//     } catch (error) {
-//     console.error("Error fetching rooms:", error); // Log the actual error for debugging
-//         res.status(500).json({ message: "Server error while fetching rooms" }); // Send a generic error to the client
-//    }
+//     res.status(200).json(accessibleRooms);
+//   } catch (error) {
+//     res.status(500).json({ message: "Error fetching rooms", error: error.message }); // Added .message to error for clearer output
+//   }
 // };
 
-
-// Get all rooms
-
+//  public
 exports.getAllRooms = async (req, res) => {
   try {
-    const rooms = await Room.find().populate("members").populate("parentRoom");
-    // Filter out private rooms the user is not a member of
-    const accessibleRooms = rooms.filter(room => !room.isPrivate || room.members.includes(req.user.id));
+    const publicRooms = await Room.find({ isPrivate: false })
+      .populate("members")
+      .populate("parentRoom");
 
-    res.status(200).json(accessibleRooms);
+    res.status(200).json(publicRooms);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching rooms", error: error.message }); // Added .message to error for clearer output
+    res.status(500).json({ message: "Error fetching public rooms", error: error.message });
   }
 };
 
