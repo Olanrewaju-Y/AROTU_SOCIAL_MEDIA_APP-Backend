@@ -58,20 +58,19 @@ exports.createRoom = async (req, res) => {
 // };
 
 
-exports.getAllRooms = async (req, res) => { 
-  try {     
-    const rooms = await Room.find().populate("members").populate("parentRoom");
+// Get all rooms
 
+exports.getAllRooms = async (req, res) => {
+  try {
+    const rooms = await Room.find().populate("members").populate("parentRoom");
     // Filter out private rooms the user is not a member of
-    const accessibleRooms = rooms.filter(room =&gt; !room.isPrivate || room.members.includes(req.user.id));
+    const accessibleRooms = rooms.filter(room => !room.isPrivate || room.members.includes(req.user.id));
 
     res.status(200).json(accessibleRooms);
-} catch (error) {
-    res.status(500).json({ message: "Error fetching rooms", error });
-}
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching rooms", error: error.message }); // Added .message to error for clearer output
+  }
 };
-
-
 
 
 
