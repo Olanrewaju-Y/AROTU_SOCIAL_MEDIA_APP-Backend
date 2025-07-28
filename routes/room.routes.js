@@ -8,6 +8,8 @@ router.post("/", auth, roomController.createRoom);
 router.get("/", auth, roomController.getAllRooms);
 router.get("/public", auth, roomController.getPublicRooms);
 router.get("/private", auth, roomController.getPrivateRooms);
+router.post("/addUser", auth, roomController.addUserToRoom);
+router.post("/removeUser", auth, roomController.removeUserFromRoom);
 router.post("/admins/add", auth, roomController.addAdminToRoom);
 router.post("/admins/remove", auth, roomController.removeAdminFromRoom);
 router.get("/:id", auth, roomController.getRoomById);

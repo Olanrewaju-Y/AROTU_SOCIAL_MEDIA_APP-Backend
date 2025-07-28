@@ -31,19 +31,6 @@ exports.createRoom = async (req, res) => {
   }
 };
 
-// Get all rooms
-// exports.getAllRooms = async (req, res) => {
-//   try {
-//     const rooms = await Room.find().populate("members").populate("parentRoom");
-//     // Filter out private rooms the user is not a member of
-//     const accessibleRooms = rooms.filter(room => !room.isPrivate || room.members.includes(req.user.id));
-
-//     res.status(200).json(accessibleRooms);
-//   } catch (error) {
-//     res.status(500).json({ message: "Error fetching rooms", error: error.message }); // Added .message to error for clearer output
-//   }
-// };
-
 exports.getAllRooms = async (req, res) => {
   try {
     const rooms = await Room.find().populate("members").populate("parentRoom");
@@ -99,6 +86,63 @@ exports.getPrivateRooms = async (req, res) => {
     res.status(500).json({ message: "Error fetching private rooms", error: error.message });
   }
 };
+
+
+// Add user to room
+exports.addUserToRoom = async (req, res) => {
+    try {
+        const { roomId, userId } = req.body;
+        const room = await Room.findById(roomId);
+        if (!room) {
+            return res.status(404).json({ message: "Room not found" });
+        }
+        // Check if the user is the creator or an admin
+        if (room.creator.toString() !== req.user.id && !room.admins.includes(req.user.id)) {
+            return res.status(403).json({ message: "You do not have permission to add users to this room" });
+        }
+        // Check if the user is already a member
+        if (room.members.includes(userId)) {
+            return res.status(400).json({ message: "User is already a member of this room" });
+        }
+
+        // Add the user to the room's members
+        room.members.push(userId);
+        await room.save();
+
+        res.status(200).json({ message: "User added to room successfully", room });
+    } catch (error) {
+        res.status(500).json({ message: "Error adding user to room", error });
+    }
+};
+
+// Remove user from a room
+exports.removeUserFromRoom = async (req, res) => {
+    try {
+        const { roomId, userId } = req.body;
+        const room = await Room.findById(roomId);
+        if (!room) {
+            return res.status(404).json({ message: "Room not found" });
+        }
+        // Check if the user is the creator or an admin
+        if (room.creator.toString() !== req.user.id && !room.admins.includes(req.user.id)) {
+            return res.status(403).json({ message: "You do not have permission to remove users from this room" });
+        }
+        // Check if the user is a member
+        if (!room.members.includes(userId)) {
+            return res.status(400).json({ message: "User is not a member of this room" });
+        }
+
+        // Remove the user from the room's members
+        room.members = room.members.filter(member => member !== userId);
+        await room.save();
+
+        res.status(200).json({ message: "User removed from room successfully", room });
+    } catch (error) {
+        res.status(500).json({ message: "Error removing user from room", error });
+    }
+};
+
+
 
 // Get a single room by ID
 exports.getRoomById = async (req, res) => {
