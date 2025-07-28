@@ -12,7 +12,6 @@ exports.createRoom = async (req, res) => {
     if (!name) {
       return res.status(400).json({ message: "Room name is required" });
     }
-
     const newRoom = new Room({
       name,
       description: req.body.description || '',
@@ -32,10 +31,7 @@ exports.createRoom = async (req, res) => {
   }
 };
 
-
-
 // Get all rooms
-
 exports.getAllRooms = async (req, res) => {
   try {
     const rooms = await Room.find().populate("members").populate("parentRoom");
@@ -61,7 +57,6 @@ exports.getPublicRooms = async (req, res) => {
   }
 };
 
-
 // Get Private rooms
 exports.getPrivateRooms = async (req, res) => {
   try {
@@ -81,9 +76,6 @@ exports.getPrivateRooms = async (req, res) => {
     res.status(500).json({ message: "Error fetching private rooms", error: error.message });
   }
 };
-
-
-
 
 // Get a single room by ID
 exports.getRoomById = async (req, res) => {
