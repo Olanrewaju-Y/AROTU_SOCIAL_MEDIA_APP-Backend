@@ -36,20 +36,20 @@ exports.createRoom = async (req, res) => {
 
 // Get all rooms
 
-// exports.getAllRooms = async (req, res) => {
-//   try {
-//     const rooms = await Room.find().populate("members").populate("parentRoom");
-//     // Filter out private rooms the user is not a member of
-//     const accessibleRooms = rooms.filter(room => !room.isPrivate || room.members.includes(req.user.id));
-
-//     res.status(200).json(accessibleRooms);
-//   } catch (error) {
-//     res.status(500).json({ message: "Error fetching rooms", error: error.message }); // Added .message to error for clearer output
-//   }
-// };
-
-//  public
 exports.getAllRooms = async (req, res) => {
+  try {
+    const rooms = await Room.find().populate("members").populate("parentRoom");
+    // Filter out private rooms the user is not a member of
+    const accessibleRooms = rooms.filter(room => !room.isPrivate || room.members.includes(req.user.id));
+
+    res.status(200).json(accessibleRooms);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching rooms", error: error.message }); // Added .message to error for clearer output
+  }
+};
+
+// Get public rooms
+exports.getPublicRooms = async (req, res) => {
   try {
     const publicRooms = await Room.find({ isPrivate: false })
       .populate("members")
@@ -62,51 +62,23 @@ exports.getAllRooms = async (req, res) => {
 };
 
 
-
-
-// Get public Rooms
-exports.getPublicRooms = async (req, res) => {
-  try {
-    // Optional: Still verify authentication if your app requires it
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ message: "Authentication required." });
-    }
-
-    // Fetch only public rooms
-    const publicRooms = await Room.find({ isPrivate: false })
-      .populate("members")
-      .populate("parentRoom");
-
-    res.status(200).json(publicRooms);
-  } catch (error) {
-    console.error("Error fetching public rooms:", error);
-    res.status(500).json({ message: "Server error while fetching public rooms" });
-  }
-};
-
-
 // Get Private rooms
 exports.getPrivateRooms = async (req, res) => {
   try {
-    // Require authentication
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ message: "Authentication required." });
-    }
-
-    // Fetch private rooms only
+    // Find only private rooms
     const privateRooms = await Room.find({ isPrivate: true })
       .populate("members")
       .populate("parentRoom");
 
-    // Filter private rooms to only include those where the user is a member
-    const userRooms = privateRooms.filter(room =>
-      room.members.some(member => member._id.toString() === req.user.id)
+    // Filter private rooms to only include those the user is a member of
+    // Assuming req.user.id holds the ID of the currently authenticated user
+    const accessiblePrivateRooms = privateRooms.filter(room => 
+      room.members.some(member => member._id.equals(req.user.id))
     );
 
-    res.status(200).json(userRooms);
+    res.status(200).json(accessiblePrivateRooms);
   } catch (error) {
-    console.error("Error fetching private rooms:", error);
-    res.status(500).json({ message: "Server error while fetching private rooms" });
+    res.status(500).json({ message: "Error fetching private rooms", error: error.message });
   }
 };
 
