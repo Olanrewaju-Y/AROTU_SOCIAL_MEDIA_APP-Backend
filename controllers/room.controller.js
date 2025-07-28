@@ -293,6 +293,17 @@ exports.getRoomMessages = async (req, res) => {
       .sort({ createdAt: 1 }); // optional: sort oldest to newest
 
     res.status(200).json(messages);
+
+    // user join room room.members +1
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ message: 'Room not found' });
+    }
+    if (!room.members.includes(req.user.id)) {
+      room.members.push(req.user.id);
+      await room.save();
+    }  
+
   } catch (error) {
     console.error('Error fetching room messages:', error);
     res.status(500).json({ message: 'Error fetching messages', error });

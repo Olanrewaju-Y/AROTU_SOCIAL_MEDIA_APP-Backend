@@ -57,12 +57,30 @@ exports.blockUser = async (req, res) => {
 
 // Search users
 exports.searchUsers = async (req, res) => {
-  const query = req.query.q;
-  const users = await User.find({
-    username: { $regex: query, $options: 'i' }
-  }).select('username avatar bio');
-  res.json(users);
+  const queryTerm = req.query.q; // The search term from the frontend
+
+  if (!queryTerm) {
+    return res.status(400).json({ message: "Search query 'q' is required." });
+  }
+
+  try {
+    // Use $or to search across multiple fields: username, roomNickname, or phone
+    // $regex provides pattern matching, and $options: 'i' makes the search case-insensitive.
+    const users = await User.find({
+      $or: [
+        { username: { $regex: queryTerm, $options: 'i' } },
+        { roomNickname: { $regex: queryTerm, $options: 'i' } },
+        { phone: { $regex: queryTerm, $options: 'i' } } // Changed from phoneNo to phone
+      ]
+    }).select('username roomNickname phone avatar bio _id status gender lookingFor relationshipStatus'); // Select relevant fields, including _id and updated phone field
+
+    res.json(users);
+  } catch (error) {
+    console.error("Error searching users:", error);
+    res.status(500).json({ message: "Internal server error during user search." });
+  }
 };
+
 
 // Friend requests
 exports.sendFriendRequest = async (req, res) => {
