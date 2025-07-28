@@ -32,15 +32,38 @@ exports.createRoom = async (req, res) => {
 };
 
 // Get all rooms
+// exports.getAllRooms = async (req, res) => {
+//   try {
+//     const rooms = await Room.find().populate("members").populate("parentRoom");
+//     // Filter out private rooms the user is not a member of
+//     const accessibleRooms = rooms.filter(room => !room.isPrivate || room.members.includes(req.user.id));
+
+//     res.status(200).json(accessibleRooms);
+//   } catch (error) {
+//     res.status(500).json({ message: "Error fetching rooms", error: error.message }); // Added .message to error for clearer output
+//   }
+// };
+
 exports.getAllRooms = async (req, res) => {
   try {
     const rooms = await Room.find().populate("members").populate("parentRoom");
-    // Filter out private rooms the user is not a member of
-    const accessibleRooms = rooms.filter(room => !room.isPrivate || room.members.includes(req.user.id));
+
+    const accessibleRooms = rooms.filter(room => {
+      // If the room is not private, it's always accessible.
+      if (!room.isPrivate) {
+        return true;
+      }
+
+      // If the room is private, check if the user is a member.
+      // We need to map the member objects to their IDs for the comparison.
+      const memberIds = room.members.map(member => member._id.toString()); // Convert IDs to string for consistent comparison
+
+      return memberIds.includes(req.user.id.toString()); // Ensure req.user.id is also a string
+    });
 
     res.status(200).json(accessibleRooms);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching rooms", error: error.message }); // Added .message to error for clearer output
+    res.status(500).json({ message: "Error fetching rooms", error: error.message });
   }
 };
 
