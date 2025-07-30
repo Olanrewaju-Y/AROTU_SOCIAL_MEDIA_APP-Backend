@@ -6,7 +6,8 @@ const postSchema = new mongoose.Schema({
   image: { type: String },
   visibility: { type: String, enum: ['public', 'friends', 'private'], default: 'public' },
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  comments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }]
+  comments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }],
+  originalPost: { type: mongoose.Schema.Types.ObjectId, ref: 'Post' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Post', postSchema);

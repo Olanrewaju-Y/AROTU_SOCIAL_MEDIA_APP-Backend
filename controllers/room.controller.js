@@ -147,21 +147,54 @@ exports.removeUserFromRoom = async (req, res) => {
 // Get a single room by ID
 exports.getRoomById = async (req, res) => {
     try {
-        const room = await Room.findById(req.params.id).populate("members").populate("parentRoom");
+        const roomId = req.params.id;
+
+        // Populate members, admins, and creator to perform comprehensive access checks.
+        // It's crucial to populate these fields so their _id can be accessed.
+        const room = await Room.findById(roomId)
+                                .populate("members", "_id username roomNickname avatar") // Populate relevant user fields
+                                .populate("admins", "_id") // Admins are likely just IDs, so just populate _id
+                                .populate("creator", "_id"); // Creator is also an ID, just populate _id
+
         if (!room) {
             return res.status(404).json({ message: "Room not found" });
         }
 
-        // Restrict access to private rooms
-        if (room.isPrivate && !room.members.includes(req.user.id)) {
-            return res.status(403).json({ message: "Access denied to private room" });
+        // Access Control Logic for Private Rooms
+        if (room.isPrivate) {
+            // Ensure req.user.id is a string for consistent comparison
+            const currentUserId = req.user.id.toString();
+
+            // Check if the current user is a member of the room
+            const isMember = room.members.some(member => member._id.toString() === currentUserId);
+
+            // Check if the current user is an admin of the room
+            // Ensure 'admins' array exists before attempting to iterate
+            const isAdmin = room.admins?.some(adminId => adminId.toString() === currentUserId);
+
+            // Check if the current user is the creator of the room
+            // Ensure 'creator' object exists before attempting to access _id
+            const isCreator = room.creator && room.creator._id.toString() === currentUserId;
+
+            // If the room is private and the user is neither a member, nor an admin, nor the creator, deny access
+            if (!isMember && !isAdmin && !isCreator) {
+                return res.status(403).json({ message: "You do not have permission to access this private room." });
+            }
         }
 
+        // If it's a public room OR if it's a private room and the user has access, send the room data
         res.status(200).json(room);
+
     } catch (error) {
-        res.status(500).json({ message: "Error fetching room", error });
+        // Handle Mongoose CastError for invalid IDs gracefully
+        if (error.name === 'CastError') {
+            return res.status(400).json({ message: "Invalid room ID format." });
+        }
+        console.error("Error fetching room details:", error);
+        res.status(500).json({ message: "Error fetching room details", error: error.message });
     }
 };
+
 
 // Update a room
 exports.updateRoom = async (req, res) => {

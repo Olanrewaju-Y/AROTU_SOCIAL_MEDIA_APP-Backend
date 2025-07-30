@@ -20,6 +20,7 @@ const {
   getComments,
   deleteComment,
   repost,
+  getReposts,
 } = require('../controllers/post.controller');
 
 // Static routes — must come BEFORE dynamic `/:id`
@@ -34,6 +35,8 @@ router.get('/hashtag/:hashtag', auth, getPostsByHashtag);
 // Create and repost
 router.post('/', auth, createPost);
 router.post('/:id/repost', auth, repost);
+router.get('/:id/reposts', auth, getReposts);
+
 
 // Post settings
 router.put('/:id/settings', auth, editPostSettings);

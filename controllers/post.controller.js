@@ -232,17 +232,46 @@ exports.unbookmarkPost = async (req, res) => {
 // Repost
 exports.repost = async (req, res) => {
   try {
+    const { content } = req.body; // optional user-provided quote/comment
     const original = await Post.findById(req.params.id);
-    if (!original) return res.status(404).json({ message: 'Original post not found' });
+
+    if (!original) {
+      return res.status(404).json({ message: 'Original post not found' });
+    }
+
+    // Prevent reposting a repost (optional, but good for content tree clarity)
+    const rootOriginalId = original.originalPost ? original.originalPost : original._id;
 
     const repost = await Post.create({
       user: req.user.id,
-      content: `Repost of ${original._id}`,
-      originalPost: original._id
+      content: content || '', // User’s quote or comment, or empty if not provided
+      originalPost: rootOriginalId // always point to the true original
     });
 
     res.status(201).json(repost);
   } catch (err) {
+    console.error('Error in reposting:', err);
     res.status(500).json({ message: 'Error reposting' });
+  }
+};
+
+// Get reposts of a post
+exports.getReposts = async (req, res) => {
+  try {
+    const originalPost = await Post.findById(req.params.id)
+      .populate('user', 'username avatar')
+      .populate('originalPost', 'content user');
+
+    if (!originalPost) {
+      return res.status(404).json({ message: 'Original post not found' });
+    }
+
+    const reposts = await Post.find({ originalPost: originalPost._id })
+      .populate('user', 'username avatar')
+      .sort({ createdAt: -1 });
+
+    res.json(reposts);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching reposts' });
   }
 };
