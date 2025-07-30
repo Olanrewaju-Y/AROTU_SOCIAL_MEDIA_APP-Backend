@@ -4,8 +4,8 @@ const User = require('../models/User');
 // Create post
 exports.createPost = async (req, res) => {
   try {
-    const { content, image } = req.body;
-    const post = await Post.create({ user: req.user.id, content, image });
+    const { content, image, visibility } = req.body;
+    const post = await Post.create({ user: req.user.id, content, image, visibility });
     res.status(201).json(post);
   } catch (err) {
     res.status(500).json({ message: 'Error creating post' });
@@ -71,13 +71,15 @@ exports.getFriendsFeed = async (req, res) => {
 // Get all posts
 exports.getAllPosts = async (req, res) => {
   try {
-    const posts = await Post.find({})
-      .populate('user', 'username avatar')
-      .sort({ createdAt: -1 });
-    res.json(posts);
-  } catch (err) {
-    res.status(500).json({ message: 'Error fetching all posts' });
-  }
+        const posts = await Post.find()
+            .populate('user', 'username avatar visibility') // Populate the 'user' field, selecting 'username' and 'avatar'
+            .populate('comments.user', 'username avatar') // Also populate 'user' within comments
+            .sort({ createdAt: -1 });
+        res.status(200).json(posts);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
 };
 
 // Delete post

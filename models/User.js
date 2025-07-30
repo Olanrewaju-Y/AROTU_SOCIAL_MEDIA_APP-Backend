@@ -57,6 +57,9 @@ const userSchema = new mongoose.Schema({
   // Notifications
   notificationToken: { type: String }, // push notification device token
 
+  // Business Profile
+  businessPage: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Business' }], // Business Profile
+
   // Presence
   isOnline: { type: Boolean, default: false },
   lastSeen: { type: Date }

@@ -12,14 +12,36 @@ exports.createRoom = async (req, res) => {
     if (!name) {
       return res.status(400).json({ message: "Room name is required" });
     }
+
+    // Determine the room type
+    let roomType = type; // Start with the type provided in the request body
+
+    // If the room is private, force its type to 'main'
+    if (isPrivate === true) {
+      roomType = 'main';
+    } else if (!roomType) {
+      // If not private and no type was provided, default to 'public'
+      roomType = 'public';
+    }
+
+    // Determine the parent room
+    let roomParentRoom = null;
+    if (roomType === 'sub' && parentRoom) {
+      const parent = await Room.findById(parentRoom);
+      if (!parent || parent.type !== 'main') {
+        return res.status(400).json({ message: 'Invalid parent room specified. Sub-rooms must have a "main" parent.' });
+      }
+      roomParentRoom = parentRoom;
+    }
+
     const newRoom = new Room({
       name,
-      description: req.body.description || '',
-      avatar: req.body.avatar || '',
+      description: description || '',
+      avatar: avatar || '',
       isPrivate,
       members: members.length > 0 ? members : [req.user.id], // fallback to creator as member
-      parentRoom: parentRoom || null,
-      type: type || 'public',
+      parentRoom: roomParentRoom, // Use the determined parent room
+      type: roomType, // Use the determined room type
       creator: req.user.id
     });
 
@@ -31,6 +53,7 @@ exports.createRoom = async (req, res) => {
   }
 };
 
+// Get all rooms
 exports.getAllRooms = async (req, res) => {
   try {
     const rooms = await Room.find().populate("members").populate("parentRoom");
@@ -208,33 +231,55 @@ exports.updateRoom = async (req, res) => {
     if (!room) {
       return res.status(404).json({ message: 'Room not found' });
     }
-    // check if req.user.id is the room.creator or an admin.
+
+    // Check if req.user.id is the room.creator or an admin.
     if (room.creator.toString() !== req.user.id && !room.admins.includes(req.user.id)) {
       return res.status(403).json({ message: 'You do not have permission to update this room.' });
     }
-        
+
+    // --- Core Logic for Private Rooms and Type ---
+    let updatedType = type ?? room.type; // Initialize updatedType with provided type or existing room type
+
+    // If isPrivate is explicitly set to true in the request, or if the room is already private
+    // Ensure the room's type is 'main'. This takes precedence.
+    if (isPrivate === true || (isPrivate === undefined && room.isPrivate === true)) {
+        updatedType = 'main';
+    } else if (isPrivate === false) {
+        // If isPrivate is explicitly set to false, allow the type to be whatever was provided or default
+        updatedType = type ?? room.type;
+    }
+    // --- End Core Logic ---
+
+
     // Update the fields that were provided in the request body
     room.name = name ?? room.name;
     room.description = description ?? room.description;
     room.avatar = avatar ?? room.avatar;
-    room.isPrivate = isPrivate ?? room.isPrivate;
-    room.type = type ?? room.type;
+    room.isPrivate = isPrivate ?? room.isPrivate; // Update isPrivate
+    room.type = updatedType; // Assign the determined type
 
     // Handle parentRoom logic
-    if (type === 'sub' && parentRoom) {
+    // A room can only have a parent if its type is 'sub'
+    if (room.type === 'sub' && parentRoom) {
       const parent = await Room.findById(parentRoom);
       if (!parent || parent.type !== 'main') {
-        return res.status(400).json({ message: 'Invalid parent room specified.' });
+        return res.status(400).json({ message: 'Invalid parent room specified. Parent must be a "main" room.' });
+      }
+      // Check if the room being updated is not attempting to be its own parent
+      if (parentRoom.toString() === roomId.toString()) {
+          return res.status(400).json({ message: 'A room cannot be its own parent.' });
       }
       room.parentRoom = parentRoom;
     } else {
+      // If type is not 'sub' or no parentRoom is provided, clear the parentRoom
       room.parentRoom = undefined;
     }
+
     const updatedRoom = await room.save();
     res.status(200).json(updatedRoom);
   } catch (error) {
     console.error('Error updating room:', error);
-    res.status(500).json({ message: 'Server error while updating room.' });
+    res.status(500).json({ message: 'Server error while updating room.', error: error.message });
   }
 };
 
