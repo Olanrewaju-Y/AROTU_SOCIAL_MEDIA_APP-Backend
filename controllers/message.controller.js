@@ -1,7 +1,6 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose'); 
 
 const Message = require('../models/Message');
-const Room = require('../models/Room');
 const User = require('../models/User');
 
 
