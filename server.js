@@ -58,7 +58,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/users', require('./routes/user.routes'));
 app.use('/api/posts', require('./routes/post.routes'));
-app.use('/api/messages', require('./routes/chat.routes'));
+app.use('/api/messages', require('./routes/message.routes'));
 app.use('/api/rooms', require('./routes/room.routes'));
 
 

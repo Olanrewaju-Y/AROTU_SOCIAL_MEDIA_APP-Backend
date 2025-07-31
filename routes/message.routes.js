@@ -5,7 +5,7 @@ const {
   getPrivateMessages,
   sendMessage,
   recentConversations
-} = require('../controllers/chat.controller');
+} = require('../controllers/message.controller');
 
 router.post('/private', auth, sendMessage);
 router.get('/recent-conversations', auth, recentConversations);
