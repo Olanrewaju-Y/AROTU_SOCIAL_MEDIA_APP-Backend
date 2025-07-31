@@ -7,13 +7,24 @@ const User = require('../models/User');
 // Get private chat history
 exports.getPrivateMessages = async (req, res) => {
   const otherUserId = req.params.userId;
-  const messages = await Message.find({
-    $or: [
-      { sender: req.user.id, receiver: otherUserId },
-      { sender: otherUserId, receiver: req.user.id }
-    ]
-  }).sort('createdAt');
-  res.json(messages);
+  const currentUserId = req.user.id; // Get current user's ID from auth middleware
+
+  try {
+    const messages = await Message.find({
+      $or: [
+        { sender: currentUserId, receiver: otherUserId },
+        { sender: otherUserId, receiver: currentUserId }
+      ]
+    })
+    .sort('createdAt')
+    .populate('sender', 'username avatar') // <-- Crucial for fetching sender's username and avatar
+    .populate('receiver', 'username avatar'); // <-- Crucial for fetching receiver's username and avatar
+
+    res.json(messages);
+  } catch (error) {
+    console.error('Error fetching private messages:', error);
+    res.status(500).json({ message: 'Server error while fetching private messages' });
+  }
 };
 
 // Send message (non-realtime fallback)
