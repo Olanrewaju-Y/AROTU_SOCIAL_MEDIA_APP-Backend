@@ -4,6 +4,8 @@ const Message = require('../models/Message');
 const User = require('../models/User');
 
 
+
+
 // Get private chat history
 exports.getPrivateMessages = async (req, res) => {
   const otherUserId = req.params.userId;
@@ -26,6 +28,34 @@ exports.getPrivateMessages = async (req, res) => {
     res.status(500).json({ message: 'Server error while fetching private messages' });
   }
 };
+
+// Create a private message
+exports.createPrivateMessage = async (req, res) => {
+  const { receiver, text } = req.body;
+  const sender = req.user.id; // Sender is the authenticated user
+
+  try {
+    // 1. Create the message
+    let message = await Message.create({ sender, receiver, text });
+
+    // 2. Populate sender and receiver for the response
+    message = await message.populate('sender', 'username avatar').populate('receiver', 'username avatar').execPopulate();
+
+    res.status(201).json(message); // Send the populated message back to the sender's client
+  } catch (error) {
+    console.error('Error creating private message:', error);
+    res.status(500).json({ message: 'Server error while creating private message' });
+  }
+};
+
+
+
+
+
+
+
+
+
 
 // Send message (non-realtime fallback)
 exports.sendMessage = async (req, res) => {
