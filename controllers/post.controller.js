@@ -123,8 +123,6 @@ exports.getAllPosts = async (req, res) => {
             // return post.visibility === 'public'; // Example: only show public posts
             return true; // Return all posts for now unless specific filtering is needed
         });
-
-
         res.status(200).json(filteredPosts);
 
     } catch (error) {
@@ -139,6 +137,7 @@ exports.getAllPosts = async (req, res) => {
         res.status(500).json({ message: 'Server Error: Failed to retrieve posts.', error: error.message });
     }
 };
+
 
 // Delete post
 exports.deletePost = async (req, res) => {
