@@ -29,25 +29,32 @@ exports.getPrivateMessages = async (req, res) => {
   }
 };
 
+
 // Create a private message
 exports.createPrivateMessage = async (req, res) => {
   const { receiver, text } = req.body;
   const sender = req.user.id; // Sender is the authenticated user
 
   try {
-    // 1. Create the message
+    // 1. Create the message in the database.
     let message = await Message.create({ sender, receiver, text });
 
-    // 2. Populate sender and receiver for the response
-    message = await message.populate('sender', 'username avatar').populate('receiver', 'username avatar').execPopulate();
+    // 2. Populate sender
+    // After this, 'message' will have the 'sender' field populated
+    message = await message.populate('sender', 'username avatar');
 
-    res.status(201).json(message); // Send the populated message back to the sender's client
+    // 3. Populate receiver (on the already-populated-with-sender message)
+    // After this, 'message' will have both 'sender' and 'receiver' fields populated
+    message = await message.populate('receiver', 'username avatar');
+
+    // 4. Send the fully populated message back to the client.
+    res.status(201).json(message);
+
   } catch (error) {
     console.error('Error creating private message:', error);
     res.status(500).json({ message: 'Server error while creating private message' });
   }
 };
-
 
 
 
