@@ -1,17 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const {auth, admin} = require('../middleware/authMiddleware');
+
+// Destructure the correct function name from the controller
 const {
   getPrivateMessages,
-  sendMessage,
+  createPrivateMessage, // <--- CHANGE THIS TO createPrivateMessage
   recentConversations
-} = require('../controllers/message.controller');
+} = require('../controllers/message.controller'); // Make sure this path is correct
 
-router.post('/private', auth, sendMessage);
+// Use the correct function in your route
+router.post('/private', auth, createPrivateMessage); // <--- CHANGE THIS TO createPrivateMessage
 router.get('/recent-conversations', auth, recentConversations);
-
 router.get('/private/:userId', auth, getPrivateMessages);
-
-
 
 module.exports = router;
