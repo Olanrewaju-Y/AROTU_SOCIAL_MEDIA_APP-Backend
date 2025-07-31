@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const Post = require('../models/Post');
 const User = require('../models/User');
+const Comment = require('../models/Comment');
 
 // Create post
 exports.createPost = async (req, res) => {
@@ -73,67 +74,54 @@ exports.getFriendsFeed = async (req, res) => {
 // Get all posts
 exports.getAllPosts = async (req, res) => {
     try {
-        // Option 1: Basic validation/check for potential issues
-        // Ensure Post and User models are correctly imported/available in this context
-        if (!mongoose.models.Post || !mongoose.models.User) {
-            console.error("Mongoose models 'Post' or 'User' are not defined. Check your model imports.");
+        // Basic validation/check for potential issues
+        if (!mongoose.models.Post || !mongoose.models.User || !mongoose.models.Comment) {
+            console.error("Mongoose models 'Post', 'User', or 'Comment' are not defined. Check your model imports.");
             return res.status(500).json({ message: 'Server configuration error: Models not found.' });
         }
 
-        const posts = await Post.find({}) // Added an empty filter object for clarity, though optional
+        const posts = await Post.find({})
             .populate({
-                path: 'user',
-                select: 'username avatar visibility', // Select specific fields
-                // Optionally, handle cases where the referenced user might be null/deleted
-                // strictPopulate: false // Allows population even if reference is missing/invalid (Mongoose 7+)
+                path: 'user', // Populates the creator of the post
+                select: 'username avatar visibility',
+                // strictPopulate: false // Mongoose 7+ option
             })
             .populate({
-                path: 'comments.user', // Path to the user field within the comments array
-                select: 'username avatar', // Select specific fields for comment authors
-                // strictPopulate: false // Allows population even if reference is missing/invalid (Mongoose 7+)
+                path: 'comments', // First, populate the actual Comment documents
+                populate: {      // Then, within each populated Comment, populate its 'user' field
+                    path: 'user', // This path refers to the 'user' field in the Comment model
+                    select: 'username avatar'
+                }
             })
-            .sort({ createdAt: -1 }); // Sort by creation date, newest first
+            .sort({ createdAt: -1 });
 
-        // Before sending, you might want to filter posts based on user visibility
-        // For example, if only 'public' posts should be seen by everyone, or specific logic for 'private'
+        // --- Visibility Filtering Logic (Important) ---
+        // Your Post schema has 'visibility'. You need to decide how to handle this.
+        // For example, if this endpoint is for a general feed, you might only want 'public' posts.
+        // If it's for a user's personal feed, you'd need authentication and more complex logic.
+
         const filteredPosts = posts.filter(post => {
-            // Assuming 'visibility' is a field on the 'Post' model itself,
-            // or if it's derived from the 'user' who created the post.
-            // Let's assume 'visibility' is a field directly on the Post schema
-            // and that you want to filter out 'private' posts unless some condition is met.
+            // Example: Only show posts that are 'public' for this general endpoint
+            return post.visibility === 'public';
 
-            // Example: Only show public posts to unauthenticated users,
-            // or filter based on post.visibility if it's on the Post model
-            // For now, this example will fetch all and then filter IF 'visibility' is on Post.
-            // If 'visibility' is only on the User, and you want to filter User's private posts
-            // then you need to adjust your Post model or filter logic differently.
+            // Or if you want to show 'public' AND posts from users who are 'friends' with req.user.id
+            // This would require fetching friend lists and more complex checks.
+            // For now, let's stick to the simplest interpretation of 'public' feed.
 
-            // A more common scenario is that the 'Post' itself has a 'visibility' property.
-            // If the post has a 'visibility' field, you'd check it here.
-            // For instance, if you only want to return "public" posts to this endpoint:
-            // if (post.visibility && post.visibility === 'public') {
-            //     return true;
-            // }
-            // return false;
-
-            // Given your user populate includes 'visibility', it implies user-level visibility.
-            // If a post's visibility depends on the creating user's settings (e.g., user profile is private)
-            // you'd need more complex logic.
-            // For now, if 'visibility' is a field on the Post, uncomment the below or adjust:
-            // return post.visibility === 'public'; // Example: only show public posts
-            return true; // Return all posts for now unless specific filtering is needed
+            // If you want to return ALL posts (including private ones if this is an admin endpoint, for example)
+            // return true;
         });
+        // --- End Visibility Filtering Logic ---
+
         res.status(200).json(filteredPosts);
 
     } catch (error) {
         console.error('Error in getAllPosts:', error); // Log the specific error for debugging
-        // Check for specific Mongoose errors if possible
         if (error.name === 'CastError') {
             return res.status(400).json({ message: 'Invalid ID format in population reference.', error: error.message });
         }
-        if (error.name === 'ValidationError') {
-            return res.status(400).json({ message: 'Validation error during data retrieval.', error: error.message });
-        }
+        // This specific error "Schema hasn't been registered for model \"Comment\"" should now be gone.
+        // If it persists, double-check your model paths and ensure they are all run/required before this code.
         res.status(500).json({ message: 'Server Error: Failed to retrieve posts.', error: error.message });
     }
 };
