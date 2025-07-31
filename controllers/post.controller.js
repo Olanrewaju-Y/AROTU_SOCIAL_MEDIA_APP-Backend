@@ -70,15 +70,71 @@ exports.getFriendsFeed = async (req, res) => {
 
 // Get all posts
 exports.getAllPosts = async (req, res) => {
-  try {
-        const posts = await Post.find()
-            .populate('user', 'username avatar visibility') // Populate the 'user' field, selecting 'username' and 'avatar'
-            .populate('comments.user', 'username avatar') // Also populate 'user' within comments
-            .sort({ createdAt: -1 });
-        res.status(200).json(posts);
+    try {
+        // Option 1: Basic validation/check for potential issues
+        // Ensure Post and User models are correctly imported/available in this context
+        if (!mongoose.models.Post || !mongoose.models.User) {
+            console.error("Mongoose models 'Post' or 'User' are not defined. Check your model imports.");
+            return res.status(500).json({ message: 'Server configuration error: Models not found.' });
+        }
+
+        const posts = await Post.find({}) // Added an empty filter object for clarity, though optional
+            .populate({
+                path: 'user',
+                select: 'username avatar visibility', // Select specific fields
+                // Optionally, handle cases where the referenced user might be null/deleted
+                // strictPopulate: false // Allows population even if reference is missing/invalid (Mongoose 7+)
+            })
+            .populate({
+                path: 'comments.user', // Path to the user field within the comments array
+                select: 'username avatar', // Select specific fields for comment authors
+                // strictPopulate: false // Allows population even if reference is missing/invalid (Mongoose 7+)
+            })
+            .sort({ createdAt: -1 }); // Sort by creation date, newest first
+
+        // Before sending, you might want to filter posts based on user visibility
+        // For example, if only 'public' posts should be seen by everyone, or specific logic for 'private'
+        const filteredPosts = posts.filter(post => {
+            // Assuming 'visibility' is a field on the 'Post' model itself,
+            // or if it's derived from the 'user' who created the post.
+            // Let's assume 'visibility' is a field directly on the Post schema
+            // and that you want to filter out 'private' posts unless some condition is met.
+
+            // Example: Only show public posts to unauthenticated users,
+            // or filter based on post.visibility if it's on the Post model
+            // For now, this example will fetch all and then filter IF 'visibility' is on Post.
+            // If 'visibility' is only on the User, and you want to filter User's private posts
+            // then you need to adjust your Post model or filter logic differently.
+
+            // A more common scenario is that the 'Post' itself has a 'visibility' property.
+            // If the post has a 'visibility' field, you'd check it here.
+            // For instance, if you only want to return "public" posts to this endpoint:
+            // if (post.visibility && post.visibility === 'public') {
+            //     return true;
+            // }
+            // return false;
+
+            // Given your user populate includes 'visibility', it implies user-level visibility.
+            // If a post's visibility depends on the creating user's settings (e.g., user profile is private)
+            // you'd need more complex logic.
+            // For now, if 'visibility' is a field on the Post, uncomment the below or adjust:
+            // return post.visibility === 'public'; // Example: only show public posts
+            return true; // Return all posts for now unless specific filtering is needed
+        });
+
+
+        res.status(200).json(filteredPosts);
+
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server Error' });
+        console.error('Error in getAllPosts:', error); // Log the specific error for debugging
+        // Check for specific Mongoose errors if possible
+        if (error.name === 'CastError') {
+            return res.status(400).json({ message: 'Invalid ID format in population reference.', error: error.message });
+        }
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ message: 'Validation error during data retrieval.', error: error.message });
+        }
+        res.status(500).json({ message: 'Server Error: Failed to retrieve posts.', error: error.message });
     }
 };
 
