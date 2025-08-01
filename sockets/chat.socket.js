@@ -42,12 +42,12 @@ const chatSocket = (io) => {
         // and just use the IDs for socket emission here.
 
         // Create the message in the database via your Message model
-        // const message = await Message.create({
-        //   sender: senderId,    // Storing sender ID
-        //   receiver: receiverId,  // Storing receiver ID
-        //   text: text,
-        //   // You might need to add a type: 'private' field to distinguish from room messages
-        // });
+        const message = await Message.create({
+          sender: senderId,    // Storing sender ID
+          receiver: receiverId,  // Storing receiver ID
+          text: text,
+          // You might need to add a type: 'private' field to distinguish from room messages
+        });
 
         // Populate sender and receiver for the message object that will be sent via socket
         // This is crucial for the frontend to display sender/receiver info correctly.
