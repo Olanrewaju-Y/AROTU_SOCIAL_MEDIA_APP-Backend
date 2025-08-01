@@ -30,30 +30,34 @@ exports.createPrivateMessage = async (req, res) => {
 
 // Get private messages
 exports.getPrivateMessages = async (req, res) => {
-    try {
-        const { recipientId } = req.params;
-        const currentUserId = req.user.id; // User fetching messages
+  try {
+    const { userId: otherUserId } = req.params; // Renamed to otherUserId for clarity
+    const currentUserId = req.user.id; // The ID of the currently logged-in user from auth middleware
 
-        // Find messages between current user and the recipient
-        const messages = await Message.find({
-            $or: [
-                { sender: currentUserId, receiver: recipientId },
-                { sender: recipientId, receiver: currentUserId }
-            ]
-        })
-        .sort('createdAt')
-        .populate('sender', 'username avatar')
-        .populate('receiver', 'username avatar'); // Populate receiver as well if needed
-
-        res.status(200).json(messages);
-    } catch (error) {
-        console.error('Error fetching private messages:', error);
-        res.status(500).json({ message: 'Server error', error: error.message });
+    if (!otherUserId || !currentUserId) {
+        return res.status(400).json({ message: 'Both user IDs are required to fetch private messages.' });
     }
+
+    // Find messages where:
+    // (sender is current user AND receiver is other user)
+    // OR
+    // (sender is other user AND receiver is current user)
+    const messages = await Message.find({
+      $or: [
+        { sender: currentUserId, receiver: otherUserId, type: 'private' },
+        { sender: otherUserId, receiver: currentUserId, type: 'private' }
+      ]
+    })
+    .sort('createdAt') // Sort by creation time to get chronological order
+    .populate('sender', 'username avatar') // Populate sender info
+    .populate('receiver', 'username avatar'); // Populate receiver info (optional, but good for consistency)
+
+    res.status(200).json(messages);
+  } catch (error) {
+    console.error('Error fetching private messages:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
 };
-
-
-
 
 
 
