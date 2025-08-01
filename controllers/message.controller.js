@@ -31,54 +31,84 @@ exports.createPrivateMessage = async (req, res) => {
 // Get private messages
 exports.getPrivateMessages = async (req, res) => {
   try {
+    // 1. Get the other user's ID from the URL parameters
+    // Your route is: router.get('/private/:userId', ..., getPrivateMessages);
     const { userId: otherUserId } = req.params;
-    const currentUserId = req.user?.id;
 
-    // Basic presence check
+    // 2. Get the current logged-in user's ID from the authentication middleware
+    const currentUserId = req.user?.id; // Safely access req.user.id
+
+    // --- Start Debugging Logs (keep these during development) ---
+    console.log("\n--- getPrivateMessages - Modeled Start ---");
+    console.log("Req Params (userId for other user):", req.params);
+    console.log("Req User (current logged-in user):", req.user);
+    console.log("Extracted otherUserId:", otherUserId);
+    console.log("Extracted currentUserId:", currentUserId);
+    // --- End Debugging Logs ---
+
+    // Basic validation
     if (!otherUserId || !currentUserId) {
-      return res.status(400).json({ message: 'Both user IDs are required to fetch private messages.' });
+      console.warn('getPrivateMessages: Missing required user IDs.');
+      return res.status(400).json({ message: 'Both user IDs (current user and recipient) are required to fetch private messages.' });
     }
 
-    // Validate ObjectId format
+    // Validate ObjectId format (good practice from your previous attempt)
     if (!mongoose.Types.ObjectId.isValid(otherUserId) || !mongoose.Types.ObjectId.isValid(currentUserId)) {
+      console.warn('getPrivateMessages: Invalid user ID format detected.');
       return res.status(400).json({ message: 'Invalid user ID format.' });
     }
 
-    const messages = await Message.find({
+    // 3. Define the Mongoose query for private messages
+    // This is the key difference from room messages:
+    // We need messages where (current user sent AND other user received)
+    // OR (other user sent AND current user received)
+    const queryConditions = {
       $or: [
-        { sender: currentUserId, receiver: otherUserId, type: 'private' },
-        { sender: otherUserId, receiver: currentUserId, type: 'private' }
-      ]
-    })
-    .sort('createdAt')
-    .populate({
-      path: 'sender',
-      select: 'username avatar',
-      strictPopulate: false, // Prevents error if sender no longer exists
-    })
-    .populate({
-      path: 'receiver',
-      select: 'username avatar',
-      strictPopulate: false,
-    });
+        { sender: currentUserId, receiver: otherUserId },
+        { sender: otherUserId, receiver: currentUserId }
+      ],
+      type: 'private' // Ensure you only fetch messages explicitly marked as private
+    };
 
-    // Optional: handle no messages case
-    if (!messages || messages.length === 0) {
-      return res.status(200).json([]); // Return empty array, not an error
+    // --- Debugging Log ---
+    console.log("MongoDB Private Message Query Conditions:", JSON.stringify(queryConditions, null, 2));
+    // --- End Debugging Log ---
+
+    const messages = await Message.find(queryConditions)
+      .populate('sender', 'username avatar') // Populate sender's info (adjust fields as needed)
+      .populate('receiver', 'username avatar') // Populate receiver's info (useful for client-side display consistency)
+      .sort({ createdAt: 1 }); // Sort oldest to newest, just like your room messages
+
+    // --- Debugging Logs ---
+    console.log("Mongoose Find Result Count for Private Messages:", messages.length);
+    if (messages.length > 0) {
+        console.log("First fetched private message (after populate):", JSON.stringify(messages[0], null, 2));
     }
+    console.log("--- getPrivateMessages - Modeled End ---");
+    // --- End Debugging Logs ---
 
+    // 4. Send the messages back to the client
+    // No need for separate 'if (!messages || messages.length === 0)' check
+    // as .json([]) handles empty array correctly.
     res.status(200).json(messages);
+
+    // --- IMPORTANT NOTE ABOUT ROOM.MEMBERS LOGIC ---
+    // The `room.members.push(req.user.id)` and `room.save()` logic in your `getRoomMessages`
+    // is specific to rooms (groups) for tracking membership.
+    // This logic does NOT apply to private 1-on-1 chats.
+    // DO NOT include any equivalent logic here unless you have a specific
+    // "private conversation document" that needs to track participants for some reason.
+    // For typical private messaging, merely fetching messages between two users is sufficient.
+    // --- END IMPORTANT NOTE ---
+
   } catch (error) {
-    console.error('Error fetching private messages:', error);
-
+    console.error('CRITICAL ERROR fetching private messages (modeled):', error); // More specific error log
     if (error instanceof mongoose.Error.CastError) {
-      return res.status(400).json({ message: 'Invalid ID provided.', error: error.message });
+      return res.status(400).json({ message: 'Invalid ID format provided for user.', error: error.message });
     }
-
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: 'Server error fetching private messages', error: error.message });
   }
 };
-
 
 
 
