@@ -6,6 +6,7 @@ const User = require('../models/User');
 
 
 
+
 // Get private chat history
 exports.getPrivateMessages = async (req, res) => {
   const otherUserId = req.params.userId;
@@ -28,6 +29,11 @@ exports.getPrivateMessages = async (req, res) => {
     res.status(500).json({ message: 'Server error while fetching private messages' });
   }
 };
+
+
+
+
+
 
 
 // Create a private message

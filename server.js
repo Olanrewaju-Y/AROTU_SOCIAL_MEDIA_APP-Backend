@@ -6,7 +6,7 @@ const http = require('http');
 const morgan = require('morgan');
 const socketIo = require('socket.io');
 const connectDB = require('./config/db'); 
-const chatSocket = require('./sockets/chat.socke');
+const chatSocket = require('./sockets/chat.socket');
 const errorHandler = require('./middleware/errorHandler');
 const rateLimiter = require('./middleware/rateLimiter');
 
