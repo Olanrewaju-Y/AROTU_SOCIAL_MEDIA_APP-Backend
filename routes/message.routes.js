@@ -3,8 +3,8 @@ const router = express.Router();
 const {auth, admin} = require('../middleware/authMiddleware');
 const {
   getPrivateMessages,
-  sendMessage,
   createPrivateMessage,
+  sendMessage,
   recentConversations
 } = require('../controllers/message.controller');
 
