@@ -9,7 +9,7 @@ const {
 } = require('../controllers/message.controller');
 
 router.post('/private', auth, sendMessage);
-router.post('/createPrivate', auth, createPrivateMessage);
+router.post('/create-private', auth, createPrivateMessage);
 router.get('/recent-conversations', auth, recentConversations);
 // Get private messages between two users
 router.get('/private/:userId', auth, getPrivateMessages);
