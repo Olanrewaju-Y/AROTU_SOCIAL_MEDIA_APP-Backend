@@ -1,12 +1,12 @@
 const express = require('express');
-const mongoose = require('mongoose'); // Keep this for type definitions/access
+const mongoose = require('mongoose'); 
 const dotenv = require('dotenv');
 const cors = require('cors');
 const http = require('http');
 const morgan = require('morgan');
 const socketIo = require('socket.io');
 const connectDB = require('./config/db'); 
-const chatSocket = require('./sockets/chat.socket');
+const chatSocket = require('./sockets/chat.socke');
 const errorHandler = require('./middleware/errorHandler');
 const rateLimiter = require('./middleware/rateLimiter');
 
@@ -14,15 +14,15 @@ const rateLimiter = require('./middleware/rateLimiter');
 dotenv.config();
 
 // Connect to MongoDB
-connectDB(); // <--- CALL YOUR CONNECTDB FUNCTION HERE!
+connectDB(); 
 
 // Init
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
-  cors: {
-    origin: '*'
-  }
+ cors: {
+ origin: '*'
+ }
 });
 
 app.set('io', io); // This makes io accessible via req.app.get('io')
@@ -35,7 +35,7 @@ app.use(rateLimiter);
 
 // Routes
 app.get('/', (req, res) => {
-  res.status(200).json({ message: 'Welcome to AROTU Social Media API' });
+  res.status(200).json({ message: 'Welcome to AROTU Social Media API' });
 });
 
 app.use('/api/auth', require('./routes/auth.routes'));
