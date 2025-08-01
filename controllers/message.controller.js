@@ -13,7 +13,7 @@ exports.createPrivateMessage = async (req, res) => {
     const { receiver, text } = req.body;
     const sender = req.user.id; // Assuming user ID is extracted from JWT in middleware
 
-    const newMessage = await Message.create({ sender, receiver, text });
+    const newMessage = await Message.create({ sender, receiver, text, type: 'private'});
 
     // Populate sender and receiver for the response
     const populatedMessage = await Message.findById(newMessage._id)

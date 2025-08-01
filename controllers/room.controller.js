@@ -346,7 +346,7 @@ exports.postRoomMessages = async (req, res) => {
     const room = await Room.findById(roomId);
     if (!room) return res.status(404).json({ message: 'Room not found' });
 
-    const newMessage = new Message({ sender: userId, room: roomId, text });
+    const newMessage = new Message({ sender: userId, room: roomId, text, type: 'room' });
     const savedMessage = await newMessage.save();
 
     const populated = await savedMessage.populate('sender', 'roomNickname username avatar');
