@@ -173,3 +173,30 @@ exports.recentConversations = async (req, res) => {
     res.status(500).json({ message: 'Server error while fetching recent conversations' });
   }
 };
+
+
+
+// Get Users in convo
+exports.getUsersInConversation = async (req, res) => {
+  try {
+    const currentUserId = req.user.id; // Assuming user ID is from JWT
+
+    // Find all distinct users that the current user has sent messages to
+    // OR received messages from.
+    const sentToUsers = await Message.distinct('receiver', { sender: currentUserId });
+    const receivedFromUsers = await Message.distinct('sender', { receiver: currentUserId });
+
+    // Combine distinct user IDs and remove the current user's ID
+    const conversationUserIds = [
+      ...new Set([...sentToUsers, ...receivedFromUsers])
+    ].filter(id => id.toString() !== currentUserId.toString());
+
+    // Fetch the full user objects for these IDs
+    const usersInConversation = await User.find({ _id: { $in: conversationUserIds } });
+
+    res.status(200).json(usersInConversation);
+  } catch (error) {
+    console.error('Error fetching users in conversation:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
