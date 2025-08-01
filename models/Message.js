@@ -5,6 +5,7 @@ const messageSchema = new mongoose.Schema({
   avatar: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   receiver: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // for 1-on-1
   room: { type: mongoose.Schema.Types.ObjectId, ref: 'Room' },     // for groups
+ // type: { type: String, enum: ['private', 'group'], default: 'private', },
   text: String,
   media: String,
   seen: { type: Boolean, default: false }

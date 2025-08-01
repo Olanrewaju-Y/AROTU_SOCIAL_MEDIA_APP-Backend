@@ -8,59 +8,52 @@ const User = require('../models/User');
 
 
 // Get private chat history
-exports.getPrivateMessages = async (req, res) => {
-  const otherUserId = req.params.userId;
-  const currentUserId = req.user.id; // Get current user's ID from auth middleware
-
-  try {
-    const messages = await Message.find({
-      $or: [
-        { sender: currentUserId, receiver: otherUserId },
-        { sender: otherUserId, receiver: currentUserId }
-      ]
-    })
-    .sort('createdAt')
-    .populate('sender', 'username avatar') // <-- Crucial for fetching sender's username and avatar
-    .populate('receiver', 'username avatar'); // <-- Crucial for fetching receiver's username and avatar
-
-    res.json(messages);
-  } catch (error) {
-    console.error('Error fetching private messages:', error);
-    res.status(500).json({ message: 'Server error while fetching private messages' });
-  }
-};
-
-
-
-
-
-
-
-// Create a private message
 exports.createPrivateMessage = async (req, res) => {
-  const { receiver, text } = req.body;
-  const sender = req.user.id; // Sender is the authenticated user
-
   try {
-    // 1. Create the message in the database.
-    let message = await Message.create({ sender, receiver, text });
+    const { receiver, text } = req.body;
+    const sender = req.user.id; // Assuming user ID is extracted from JWT in middleware
 
-    // 2. Populate sender
-    // After this, 'message' will have the 'sender' field populated
-    message = await message.populate('sender', 'username avatar');
+    const newMessage = await Message.create({ sender, receiver, text });
 
-    // 3. Populate receiver (on the already-populated-with-sender message)
-    // After this, 'message' will have both 'sender' and 'receiver' fields populated
-    message = await message.populate('receiver', 'username avatar');
+    // Populate sender and receiver for the response
+    const populatedMessage = await Message.findById(newMessage._id)
+      .populate('sender', 'username avatar')
+      .populate('receiver', 'username avatar');
 
-    // 4. Send the fully populated message back to the client.
-    res.status(201).json(message);
-
+    res.status(201).json(populatedMessage);
   } catch (error) {
     console.error('Error creating private message:', error);
-    res.status(500).json({ message: 'Server error while creating private message' });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+
+// Get private messages
+exports.getPrivateMessages = async (req, res) => {
+    try {
+        const { recipientId } = req.params;
+        const currentUserId = req.user.id; // User fetching messages
+
+        // Find messages between current user and the recipient
+        const messages = await Message.find({
+            $or: [
+                { sender: currentUserId, receiver: recipientId },
+                { sender: recipientId, receiver: currentUserId }
+            ]
+        })
+        .sort('createdAt')
+        .populate('sender', 'username avatar')
+        .populate('receiver', 'username avatar'); // Populate receiver as well if needed
+
+        res.status(200).json(messages);
+    } catch (error) {
+        console.error('Error fetching private messages:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+
+
 
 
 
