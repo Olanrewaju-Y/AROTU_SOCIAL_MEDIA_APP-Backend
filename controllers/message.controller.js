@@ -8,24 +8,24 @@ const User = require('../models/User');
 
 
 // Get private chat history
-exports.createPrivateMessage = async (req, res) => {
-  try {
-    const { receiver, text } = req.body;
-    const sender = req.user.id; // Assuming user ID is extracted from JWT in middleware
+// exports.createPrivateMessage = async (req, res) => {
+//   try {
+//     const { receiver, text } = req.body;
+//     const sender = req.user.id; // Assuming user ID is extracted from JWT in middleware
 
-    const newMessage = await Message.create({ sender, receiver, text, type: 'private'});
+//     const newMessage = await Message.create({ sender, receiver, text, type: 'private'});
 
-    // Populate sender and receiver for the response
-    const populatedMessage = await Message.findById(newMessage._id)
-      .populate('sender', 'username avatar')
-      .populate('receiver', 'username avatar');
+//     // Populate sender and receiver for the response
+//     const populatedMessage = await Message.findById(newMessage._id)
+//       .populate('sender', 'username avatar')
+//       .populate('receiver', 'username avatar');
 
-    res.status(201).json(populatedMessage);
-  } catch (error) {
-    console.error('Error creating private message:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
+//     res.status(201).json(populatedMessage);
+//   } catch (error) {
+//     console.error('Error creating private message:', error);
+//     res.status(500).json({ message: 'Server error', error: error.message });
+//   }
+// };
 
 
 // Get private messages
