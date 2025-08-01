@@ -33,37 +33,53 @@ const chatSocket = (io) => {
       console.log(`Socket ${socket.id} joined group room: ${roomId}`);
     });
 
-
-    // Send private message (from frontend)
-    // This event should receive the message *already saved by the REST API*.
-    // The frontend should send the full populated message object here.
-    socket.on('private-message', async (populatedMessage) => { // Changed parameter name for clarity
+    // Send private message
+    socket.on('private-message', async ({ senderId, receiverId, text }) => {
       try {
-        // --- IMPORTANT CHANGE HERE ---
-        // DO NOT call Message.create() here. The message is already saved by the REST API.
-        // This handler's job is just to broadcast the already saved message.
+        // Find the actual sender and receiver user objects (optional, if you want full user data in message)
+        // You might already have this from the token in your REST API for message creation.
+        // For simplicity, we'll assume the REST API handles populating sender/receiver
+        // and just use the IDs for socket emission here.
 
-        // Ensure the populatedMessage has the necessary IDs for routing
-        if (!populatedMessage || !populatedMessage.sender || !populatedMessage.receiver || !populatedMessage.text) {
-          console.error("Backend Socket: 'private-message' received with malformed data:", populatedMessage);
-          return;
+        // Create the message in the database via your Message model
+        // const message = await Message.create({
+        //   sender: senderId,    // Storing sender ID
+        //   receiver: receiverId,  // Storing receiver ID
+        //   text: text,
+        //   // You might need to add a type: 'private' field to distinguish from room messages
+        // });
+
+        // Populate sender and receiver for the message object that will be sent via socket
+        // This is crucial for the frontend to display sender/receiver info correctly.
+        // Assuming your Message model has a static method or virtuals to populate
+        // Or you can fetch and populate manually here if `Message.create` doesn't return populated objects
+        const populatedMessage = await Message.findById(message._id)
+          .populate('sender', 'username avatar') // Populate only necessary fields
+          .populate('receiver', 'username avatar'); // Populate receiver as well if needed on frontend
+
+        if (!populatedMessage) {
+            console.error("Failed to find or populate message after creation.");
+            return;
         }
-
-        const senderId = populatedMessage.sender._id;
-        const receiverId = populatedMessage.receiver._id;
 
         // Emit to the receiver's private room.
         // The receiver's socket should have joined a room named after their userId.
         io.to(receiverId).emit('receive-private-message', populatedMessage);
-        console.log(`Backend Socket: Emitted private message from ${senderId} to ${receiverId} (via socket broadcast).`);
+        console.log(`Backend: Emitted private message from ${senderId} to ${receiverId}`);
 
-        // OPTIONAL: If you want the sender's other tabs/devices to receive the message via socket,
-        // you would also emit to the sender's room.
+        // Also emit back to the sender if they have another device or tab open,
+        // or for immediate confirmation/sync if not handled optimistically on sender's side.
+        // However, your frontend already handles optimistic updates and then updates,
+        // so this might cause a duplicate if not carefully handled on the frontend.
+        // The current frontend design implies the sender's client will add it immediately,
+        // and the `receive-private-message` for the *sender* should either be ignored
+        // or used for confirmation/replacement of an optimistic message.
+        // For now, only sending to receiver to avoid complex duplicate logic on sender side.
+        // If you want sender to receive confirmation via socket, you'd emit to senderId as well:
         // io.to(senderId).emit('receive-private-message', populatedMessage);
 
-
       } catch (error) {
-        console.error('Backend Socket: Error processing private message broadcast:', error);
+        console.error('Error sending private message:', error);
       }
     });
 
