@@ -4,11 +4,11 @@ const {auth, admin} = require('../middleware/authMiddleware');
 const {
   getPrivateMessages,
   createPrivateMessage,
-  sendMessage,
+//  sendMessage,
   recentConversations
 } = require('../controllers/message.controller');
 
-router.post('/private', auth, sendMessage);
+//  router.post('/private', auth, sendMessage);
 router.post('/create-private', auth, createPrivateMessage);
 router.get('/recent-conversations', auth, recentConversations);
 // Get private messages between two users

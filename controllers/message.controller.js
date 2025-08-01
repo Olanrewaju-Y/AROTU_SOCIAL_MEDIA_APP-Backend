@@ -119,15 +119,15 @@ exports.getPrivateMessages = async (req, res) => {
 
 
 // Send message (non-realtime fallback)
-exports.sendMessage = async (req, res) => {
-  const { receiver, text } = req.body;
-  const message = await Message.create({
-    sender: req.user.id,
-    receiver,
-    text
-  });
-  res.status(201).json(message);
-};
+// exports.sendMessage = async (req, res) => {
+//   const { receiver, text } = req.body;
+//   const message = await Message.create({
+//     sender: req.user.id,
+//     receiver,
+//     text
+//   });
+//   res.status(201).json(message);
+// };
 
 
 // Example Backend Endpoint: /api/messages/recent-conversations
