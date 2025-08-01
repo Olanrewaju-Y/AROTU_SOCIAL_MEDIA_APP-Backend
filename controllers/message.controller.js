@@ -31,33 +31,54 @@ exports.createPrivateMessage = async (req, res) => {
 // Get private messages
 exports.getPrivateMessages = async (req, res) => {
   try {
-    const { userId: otherUserId } = req.params; // Renamed to otherUserId for clarity
-    const currentUserId = req.user.id; // The ID of the currently logged-in user from auth middleware
+    const { userId: otherUserId } = req.params;
+    const currentUserId = req.user?.id;
 
+    // Basic presence check
     if (!otherUserId || !currentUserId) {
-        return res.status(400).json({ message: 'Both user IDs are required to fetch private messages.' });
+      return res.status(400).json({ message: 'Both user IDs are required to fetch private messages.' });
     }
 
-    // Find messages where:
-    // (sender is current user AND receiver is other user)
-    // OR
-    // (sender is other user AND receiver is current user)
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(otherUserId) || !mongoose.Types.ObjectId.isValid(currentUserId)) {
+      return res.status(400).json({ message: 'Invalid user ID format.' });
+    }
+
     const messages = await Message.find({
       $or: [
         { sender: currentUserId, receiver: otherUserId, type: 'private' },
         { sender: otherUserId, receiver: currentUserId, type: 'private' }
       ]
     })
-    .sort('createdAt') // Sort by creation time to get chronological order
-    .populate('sender', 'username avatar') // Populate sender info
-    .populate('receiver', 'username avatar'); // Populate receiver info (optional, but good for consistency)
+    .sort('createdAt')
+    .populate({
+      path: 'sender',
+      select: 'username avatar',
+      strictPopulate: false, // Prevents error if sender no longer exists
+    })
+    .populate({
+      path: 'receiver',
+      select: 'username avatar',
+      strictPopulate: false,
+    });
+
+    // Optional: handle no messages case
+    if (!messages || messages.length === 0) {
+      return res.status(200).json([]); // Return empty array, not an error
+    }
 
     res.status(200).json(messages);
   } catch (error) {
     console.error('Error fetching private messages:', error);
+
+    if (error instanceof mongoose.Error.CastError) {
+      return res.status(400).json({ message: 'Invalid ID provided.', error: error.message });
+    }
+
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
 
 
 
