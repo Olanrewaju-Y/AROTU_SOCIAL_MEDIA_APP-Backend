@@ -15,8 +15,8 @@ const {
   getFriendsList,
   getFriendRequests,
   unfriendUser,
-  followFriend,
-  unfollowFriend,
+  followUser,
+  unfollowUser,
   getFollowingList,
   getFollowersList,
   updateSettings,
@@ -66,8 +66,8 @@ router.post('/:id/friend-request/reject', auth, rejectFriendRequest);
 
 
 // Following routes
-router.post('/:id/follow', auth, followFriend);
-router.post('/:id/unfollow', auth, unfollowFriend);
+router.post('/:id/follow', auth, followUser); // Changed to followUser
+router.post('/:id/unfollow', auth, unfollowUser); // Changed to unfollowUser
 
 
 // Notifications
