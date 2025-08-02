@@ -143,40 +143,72 @@ exports.unfriendUser = async (req, res) => {
 
 
 // Follow a user
+// In your backend controller for followUser
 exports.followUser = async (req, res) => {
   try {
-    const userToFollowId = req.params.id; // The ID of the user being followed
-    const currentUserId = req.user.id; // The ID of the authenticated user (the follower)
+    const userToFollowId = req.params.id;
+    const currentUserId = req.user.id; // Assuming req.user.id is populated by auth middleware
 
-    // Prevent following self
+    console.log(`[Follow API] Request: currentUserId=${currentUserId}, userToFollowId=${userToFollowId}`);
+
     if (userToFollowId === currentUserId) {
+      console.log('[Follow API] Attempted to follow self.');
       return res.status(400).json({ message: 'You cannot follow yourself.' });
     }
 
-    // 1. Update the current user's 'following' list
     const currentUser = await User.findById(currentUserId);
     if (!currentUser) {
+      console.error('[Follow API] Authenticated user not found for ID:', currentUserId);
       return res.status(404).json({ message: 'Authenticated user not found.' });
     }
-    if (!currentUser.following.includes(userToFollowId)) {
-      currentUser.following.push(userToFollowId);
-      await currentUser.save();
+    console.log(`[Follow API] Current user fetched: ${currentUser.username}, Following array:`, currentUser.following);
+
+    // Crucial check: Ensure 'following' exists before pushing
+    if (!currentUser.following) {
+        console.warn(`[Follow API] 'following' array is missing for user ${currentUser.username}. Initializing.`);
+        currentUser.following = [];
     }
 
-    // 2. Update the target user's 'followers' list
+    if (!currentUser.following.includes(userToFollowId)) {
+      currentUser.following.push(userToFollowId);
+      console.log(`[Follow API] Pushed ${userToFollowId} to ${currentUser.username}'s following.`);
+      await currentUser.save();
+      console.log(`[Follow API] Saved current user ${currentUser.username}.`);
+    } else {
+        console.log(`[Follow API] Current user ${currentUser.username} already follows ${userToFollowId}.`);
+    }
+
+
     const userToFollow = await User.findById(userToFollowId);
     if (!userToFollow) {
+      console.error('[Follow API] Target user not found for ID:', userToFollowId);
+      // Don't return 404 here, as the current user's 'following' might have updated.
+      // Handle this scenario gracefully, maybe just log it.
+      // For now, let's return 404 to explicitly show the issue.
       return res.status(404).json({ message: 'User to follow not found.' });
     }
+    console.log(`[Follow API] Target user fetched: ${userToFollow.username}, Followers array:`, userToFollow.followers);
+
+    // Crucial check: Ensure 'followers' exists before pushing
+    if (!userToFollow.followers) {
+        console.warn(`[Follow API] 'followers' array is missing for user ${userToFollow.username}. Initializing.`);
+        userToFollow.followers = [];
+    }
+
     if (!userToFollow.followers.includes(currentUserId)) {
       userToFollow.followers.push(currentUserId);
+      console.log(`[Follow API] Pushed ${currentUserId} to ${userToFollow.username}'s followers.`);
       await userToFollow.save();
+      console.log(`[Follow API] Saved target user ${userToFollow.username}.`);
+    } else {
+        console.log(`[Follow API] Target user ${userToFollow.username} already has ${currentUserId} as follower.`);
     }
 
     res.json({ message: 'User followed successfully.' });
+
   } catch (error) {
-    console.error('Error following user:', error);
-    res.status(500).json({ message: 'Server error during follow operation.' });
+    console.error('[Follow API] Critical Error:', error.message, error.stack);
+    res.status(500).json({ message: 'Server error during follow operation. Check server logs for details.' });
   }
 };
 
