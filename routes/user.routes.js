@@ -9,11 +9,11 @@ const {
   deleteAccount,
   blockUser,
   searchUsers,
-  sendFriendRequest,
-  acceptFriendRequest,
-  rejectFriendRequest,
+  // sendFriendRequest,
+  // acceptFriendRequest,
+  // rejectFriendRequest,
   getFriendsList,
-  getFriendRequests,
+  // getFriendRequests,
   unfriendUser,
   followUser,
   unfollowUser,
@@ -27,6 +27,8 @@ const {
   deleteNotification,
   clearAllNotifications,
   getUserStatistics,
+  getFeelings,
+  updateFeelings,
 
 } = require('../controllers/user.controller');
 
@@ -41,8 +43,11 @@ router.get('/search', auth, searchUsers);
 router.get('/following', auth, getFollowingList);
 router.get('/followers', auth, getFollowersList);
 
+router.get('/feelings', auth, getFeelings);
+router.put('/feelings', auth, updateFeelings);
+
 router.get('/friends', auth, getFriendsList);
-router.get('/friend-requests', auth, getFriendRequests);
+// router.get('/friend-requests', auth, getFriendRequests);
 router.delete('/friends/:id', auth, unfriendUser);
 
 // Settings
@@ -60,9 +65,9 @@ router.get('/:id', auth, getUserById);
 router.patch('/block/:id', auth, blockUser);
 
 // Friendship routes
-router.post('/:id/friend-request', auth, sendFriendRequest);
-router.post('/:id/friend-request/accept', auth, acceptFriendRequest);
-router.post('/:id/friend-request/reject', auth, rejectFriendRequest);
+// router.post('/:id/friend-request', auth, sendFriendRequest);
+// router.post('/:id/friend-request/accept', auth, acceptFriendRequest);
+// router.post('/:id/friend-request/reject', auth, rejectFriendRequest);
 
 
 // Following routes

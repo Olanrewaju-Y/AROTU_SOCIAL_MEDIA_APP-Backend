@@ -19,10 +19,10 @@ exports.getUserById = async (req, res) => {
 
 // Update your profile
 exports.updateProfile = async (req, res) => {
-  const { phone, birthday, gender, location, relationshipStatus, lookingFor, roomNickname, avatar, bio, status } = req.body;
+  const { phone, birthday, gender, location, relationshipStatus, lookingFor, roomNickname, avatar, bio, status, feelings } = req.body;
   const user = await User.findByIdAndUpdate(
     req.user.id,
-    { phone, birthday, gender, location, relationshipStatus, lookingFor, roomNickname, avatar, bio, status },
+    { phone, birthday, gender, location, relationshipStatus, lookingFor, roomNickname, avatar, bio, status, feelings },
     { new: true }
   ).select('-password');
   res.json(user);
@@ -83,40 +83,40 @@ exports.searchUsers = async (req, res) => {
 
 
 // Friend requests
-exports.sendFriendRequest = async (req, res) => {
-  const { id: targetUserId } = req.params;
-  const user = await User.findById(req.user.id);
-  if (!user.friendRequestsSent.includes(targetUserId)) {
-    user.friendRequestsSent.push(targetUserId);
-    await user.save();
-  }
-  res.json({ message: 'Friend request sent' });
-};
+// exports.sendFriendRequest = async (req, res) => {
+//   const { id: targetUserId } = req.params;
+//   const user = await User.findById(req.user.id);
+//   if (!user.friendRequestsSent.includes(targetUserId)) {
+//     user.friendRequestsSent.push(targetUserId);
+//     await user.save();
+//   }
+//   res.json({ message: 'Friend request sent' });
+// };
 
 // Accept friend request
-exports.acceptFriendRequest = async (req, res) => {
-  const { id: requestId } = req.params;
-  const user = await User.findById(req.user.id);
-  if (user.friendRequestsReceived.includes(requestId)) {
-    user.friends.push(requestId);
-    user.friendRequestsReceived = user.friendRequestsReceived.filter(
-      (id) => id !== requestId
-    );
-    await user.save();
-  }
-  res.json({ message: 'Friend request accepted' });
-};
+// exports.acceptFriendRequest = async (req, res) => {
+//   const { id: requestId } = req.params;
+//   const user = await User.findById(req.user.id);
+//   if (user.friendRequestsReceived.includes(requestId)) {
+//     user.friends.push(requestId);
+//     user.friendRequestsReceived = user.friendRequestsReceived.filter(
+//       (id) => id !== requestId
+//     );
+//     await user.save();
+//   }
+//   res.json({ message: 'Friend request accepted' });
+// };
 
 // Reject friend request
-exports.rejectFriendRequest = async (req, res) => {
-  const { id: requestId } = req.params;
-  const user = await User.findById(req.user.id);
-  user.friendRequestsReceived = user.friendRequestsReceived.filter(
-    (id) => id !== requestId
-  );
-  await user.save();
-  res.json({ message: 'Friend request rejected' });
-};
+// exports.rejectFriendRequest = async (req, res) => {
+//   const { id: requestId } = req.params;
+//   const user = await User.findById(req.user.id);
+//   user.friendRequestsReceived = user.friendRequestsReceived.filter(
+//     (id) => id !== requestId
+//   );
+//   await user.save();
+//   res.json({ message: 'Friend request rejected' });
+// };
 
 // Get friends list
 exports.getFriendsList = async (req, res) => {
@@ -126,11 +126,11 @@ exports.getFriendsList = async (req, res) => {
 };
 
 // Get friend requests
-exports.getFriendRequests = async (req, res) => {
-  const user = await User.findById(req.user.id)
-    .populate('friendRequestsReceived', 'username avatar bio');
-  res.json(user.friendRequestsReceived);
-};
+// exports.getFriendRequests = async (req, res) => {
+//   const user = await User.findById(req.user.id)
+//     .populate('friendRequestsReceived', 'username avatar bio');
+//   res.json(user.friendRequestsReceived);
+// };
 
 // Unfriend a user
 exports.unfriendUser = async (req, res) => {
@@ -143,7 +143,6 @@ exports.unfriendUser = async (req, res) => {
 
 
 // Follow a user
-// In your backend controller for followUser
 exports.followUser = async (req, res) => {
   try {
     const userToFollowId = req.params.id;
@@ -265,6 +264,30 @@ exports.getFollowersList = async (req, res) => {
     return res.status(404).json({ message: 'User not found' });
   }
   res.json(user.followers);
+};
+
+// Get feelings
+exports.getFeelings = async (req, res) => {
+  const user = await User.findById(req.user.id)
+    .select('feelings');
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+  res.json(user.feelings);
+};
+
+// update feelings
+exports.updateFeelings = async (req, res) => {
+  const { feelings } = req.body;
+  const user = await User.findByIdAndUpdate(
+    req.user.id,
+    { feelings },
+    { new: true }
+  );
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+  res.json(user.feelings);
 };
 
 // Update user settings

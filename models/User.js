@@ -41,6 +41,11 @@ const userSchema = new mongoose.Schema({
   avatar: { type: String, default: '' },
   bio: { type: String, default: '' },
   status: { type: String, default: "Hey there! I'm using Arotu." },
+  feelings: {
+      type: String,
+      enum: ['happy', 'sad', 'complicated', 'excited', 'bored', 'angry'],
+      default: 'happy'
+    },
 
   // Social
   friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
@@ -49,8 +54,8 @@ const userSchema = new mongoose.Schema({
   blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
   // New: Friend request system
-  friendRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // incoming
-  sentRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],   // outgoing
+  // friendRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // incoming
+  // sentRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],   // outgoing
 
   // Typing status (for real-time UI)
   typingTo: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // users they're typing to

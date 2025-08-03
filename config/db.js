@@ -5,11 +5,8 @@ const fs = require('fs'); // To read directories for models
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI, {
-      useNewUrlParser: true, // Deprecated in newer Mongoose, but usually harmless
-      useUnifiedTopology: true // Deprecated in newer Mongoose, but usually harmless
-    });
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    const conn = await mongoose.connect(process.env.MONGO_URI);
+    console.log(`MongoDB Connected`);
 
     // --- CRITICAL PART: Require all your models here ---
     // This ensures Mongoose knows about all your schemas before population attempts.
