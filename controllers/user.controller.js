@@ -3,18 +3,52 @@ const User = require('../models/User');
 
 // Get your profile
 exports.getProfile = async (req, res) => {
-  const user = await User.findById(req.user.id).select('-password');
-  res.json(user);
+  try {
+    // Ensure req.user.id exists and is valid (middleware should handle this, but defensive check)
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: 'Unauthorized: User ID not found in request.' });
+    }
+
+    const user = await User.findById(req.user.id).select('-password');
+
+    if (!user) {
+      // This case should ideally not happen if auth middleware works, but good to check
+      return res.status(404).json({ message: 'Profile not found for authenticated user.' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Error fetching own profile:', error);
+    // Specifically handle CastError for invalid IDs
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid user ID format.' });
+    }
+    res.status(500).json({ message: 'Server error while fetching profile.' });
+  }
 };
 
 // Get user by ID
 exports.getUserById = async (req, res) => {
-  const { id: userId } = req.params;
-  const user = await User.findById(userId).select('-password');
-  if (!user) {
-    return res.status(404).json({ message: 'User not found' });
+  try {
+    const { id: userId } = req.params;
+
+    // Validate the userId format early
+    if (!mongoose.Types.ObjectId.isValid(userId)) { // Assuming you import mongoose in your controller
+        return res.status(400).json({ message: 'Invalid user ID format.' });
+    }
+
+    const user = await User.findById(userId).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Error fetching user by ID:', error);
+    // The isValid check above handles CastError, but catch other potential issues
+    res.status(500).json({ message: 'Server error while fetching user by ID.' });
   }
-  res.json(user);
 };
 
 // Update your profile

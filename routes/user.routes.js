@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { auth } = require('../middleware/authMiddleware');
+const { auth } = require('../middleware/authMiddleware'); // Your authentication middleware
 const {
   getProfile,
   getUserById,
@@ -9,11 +9,7 @@ const {
   deleteAccount,
   blockUser,
   searchUsers,
-  // sendFriendRequest,
-  // acceptFriendRequest,
-  // rejectFriendRequest,
   getFriendsList,
-  // getFriendRequests,
   unfriendUser,
   followUser,
   unfollowUser,
@@ -29,59 +25,65 @@ const {
   getUserStatistics,
   getFeelings,
   updateFeelings,
-
 } = require('../controllers/user.controller');
 
+// =======================================================
+// Public Routes (No authentication required)
+// =======================================================
 
-// User routes
+// Get all users (e.g., for a user directory)
+router.get('/', getAllUsers);
+
+// Search users by query
+router.get('/search', searchUsers);
+
+// Get a specific user's public profile by ID
+router.get('/:id', getUserById);
+
+
+// =======================================================
+// Private Routes (Authentication required)
+// =======================================================
+
+// Authenticated user's own profile
 router.get('/me', auth, getProfile);
 router.put('/me', auth, updateProfile);
-router.get('/', auth, getAllUsers);
-router.delete('/me', auth, deleteAccount);
-router.get('/search', auth, searchUsers);
+router.delete('/me', auth, deleteAccount); // Delete authenticated user's own account
 
-router.get('/following', auth, getFollowingList);
-router.get('/followers', auth, getFollowersList);
-
+// Feelings
 router.get('/feelings', auth, getFeelings);
 router.put('/feelings', auth, updateFeelings);
 
+// Following and Followers lists for the authenticated user
+router.get('/following', auth, getFollowingList);
+router.get('/followers', auth, getFollowersList);
+
+// Friendship management for the authenticated user
 router.get('/friends', auth, getFriendsList);
-// router.get('/friend-requests', auth, getFriendRequests);
-router.delete('/friends/:id', auth, unfriendUser);
+router.delete('/friends/:id', auth, unfriendUser); // Unfriend a specific user
 
 // Settings
 router.put('/settings', auth, updateSettings);
 router.get('/settings', auth, getSettings);
+
+// Activity Log
 router.get('/activity-log', auth, getActivityLog);
 
 // User statistics
 router.get('/statistics', auth, getUserStatistics);
 
-router.get('/notifications', auth, getNotifications);
-router.delete('/notifications/clear', auth, clearAllNotifications);
-
-router.get('/:id', auth, getUserById);
-router.patch('/block/:id', auth, blockUser);
-
-// Friendship routes
-// router.post('/:id/friend-request', auth, sendFriendRequest);
-// router.post('/:id/friend-request/accept', auth, acceptFriendRequest);
-// router.post('/:id/friend-request/reject', auth, rejectFriendRequest);
-
-
-// Following routes
-router.post('/:id/follow', auth, followUser); // Changed to followUser
-router.post('/:id/unfollow', auth, unfollowUser); // Changed to unfollowUser
-
-
 // Notifications
+router.get('/notifications', auth, getNotifications);
 router.post('/notifications/:id/read', auth, markNotificationAsRead);
 router.delete('/notifications/:id', auth, deleteNotification);
+router.delete('/notifications/clear', auth, clearAllNotifications);
 
+// Actions on other users (require authentication)
+router.patch('/block/:id', auth, blockUser); // Block a specific user
 
-
-
+// Following/Unfollowing other users
+router.post('/:id/follow', auth, followUser);
+router.post('/:id/unfollow', auth, unfollowUser);
 
 
 module.exports = router;
