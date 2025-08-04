@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 
 // Get your profile
