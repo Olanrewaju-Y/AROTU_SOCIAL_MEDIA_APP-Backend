@@ -25,6 +25,10 @@ const {
   getUserStatistics,
   getFeelings,
   updateFeelings,
+   // NEW IMPORTS FOR SPECIFIC USER LISTS
+  getFollowingListForUser,
+  getFollowersListForUser,
+  getFriendsListForUser,
 } = require('../controllers/user.controller');
 
 // =======================================================
@@ -84,6 +88,12 @@ router.patch('/block/:id', auth, blockUser); // Block a specific user
 // Following/Unfollowing other users
 router.post('/:id/follow', auth, followUser);
 router.post('/:id/unfollow', auth, unfollowUser);
+
+// NEW ROUTES FOR FETCHING LISTS OF A SPECIFIC USER (by ID in URL)
+router.get('/:id/following', auth, getFollowingListForUser);
+router.get('/:id/followers', auth, getFollowersListForUser);
+router.get('/:id/friends', auth, getFriendsListForUser);
+
 
 
 module.exports = router;

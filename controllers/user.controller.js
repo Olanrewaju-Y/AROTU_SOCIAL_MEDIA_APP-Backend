@@ -398,3 +398,100 @@ exports.getUserStatistics = async (req, res) => {
     totalNotifications: user.notifications.length
   });
 };
+
+
+// New: Get Following List for a specific user (by ID in params)
+exports.getFollowingListForUser = async (req, res) => {
+  try {
+    const { id: userId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID format.' });
+    }
+
+    const user = await User.findById(userId).populate('following', 'username avatar status');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+    res.json(user.following || []); // Return empty array if null/undefined
+  } catch (error) {
+    console.error('Error fetching following list for user:', error);
+    res.status(500).json({ message: 'Server error fetching following list.' });
+  }
+};
+
+// New: Get Followers List for a specific user (by ID in params)
+exports.getFollowersListForUser = async (req, res) => {
+  try {
+    const { id: userId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID format.' });
+    }
+
+    const user = await User.findById(userId).populate('followers', 'username avatar status');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+    res.json(user.followers || []); // Return empty array if null/undefined
+  } catch (error) {
+    console.error('Error fetching followers list for user:', error);
+    res.status(500).json({ message: 'Server error fetching followers list.' });
+  }
+};
+
+// New: Get Friends List for a specific user (by ID in params)
+exports.getFriendsListForUser = async (req, res) => {
+  try {
+    const { id: userId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID format.' });
+    }
+
+    const user = await User.findById(userId).populate('friends', 'username avatar status');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+    res.json(user.friends || []); // Return empty array if null/undefined
+  } catch (error) {
+    console.error('Error fetching friends list for user:', error);
+    res.status(500).json({ message: 'Server error fetching friends list.' });
+  }
+};
+
+// IMPORTANT: Ensure your existing getFollowingList, getFollowersList, getFriendsList
+// (without :id in params) still correctly fetch for req.user.id.
+// Example (ensure they populate user details):
+exports.getFollowingList = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).populate('following', 'username avatar status');
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+    res.json(user.following || []);
+  } catch (error) {
+    console.error('Error fetching own following list:', error);
+    res.status(500).json({ message: 'Server error fetching own following list.' });
+  }
+};
+
+exports.getFollowersList = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).populate('followers', 'username avatar status');
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+    res.json(user.followers || []);
+  } catch (error) {
+    console.error('Error fetching own followers list:', error);
+    res.status(500).json({ message: 'Server error fetching own followers list.' });
+  }
+};
+
+exports.getFriendsList = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).populate('friends', 'username avatar status');
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+    res.json(user.friends || []);
+  } catch (error) {
+    console.error('Error fetching own friends list:', error);
+    res.status(500).json({ message: 'Server error fetching own friends list.' });
+  }
+};
