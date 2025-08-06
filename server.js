@@ -5,7 +5,7 @@ const cors = require('cors');
 const http = require('http');
 const morgan = require('morgan');
 const socketIo = require('socket.io');
-const connectDB = require('./config/db'); 
+// const connectDB = require('./config/db'); 
 const chatSocket = require('./sockets/chat.socket');
 const errorHandler = require('./middleware/errorHandler');
 const rateLimiter = require('./middleware/rateLimiter');
@@ -14,7 +14,7 @@ const rateLimiter = require('./middleware/rateLimiter');
 dotenv.config();
 
 // Connect to MongoDB
-connectDB(); 
+// connectDB(); 
 
 // Init
 const app = express();
@@ -32,6 +32,22 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 app.use(rateLimiter);
+
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log('MongoDB connected successfully');
+
+    // Start server after DB connection
+    const PORT = process.env.PORT || 5000;
+    server.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('MongoDB connection error:', err);
+  });
 
 // Routes
 app.get('/', (req, res) => {
@@ -51,10 +67,3 @@ app.use(errorHandler);
 
 // Socket
 chatSocket(io);
-
-// Start server (moved outside of the connect.then() block if connectDB handles starting)
-// If connectDB connects but doesn't start the server, keep this part:
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
